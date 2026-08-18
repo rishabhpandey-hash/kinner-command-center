@@ -248,17 +248,24 @@ function closeDrill() {
 }
 document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrill(); });
 
+function drillJunk() {
+  const rows = (LAST.leads || []).filter(l => l.is_junk)
+    .sort((a, b) => String(a.junk_reason || '').localeCompare(String(b.junk_reason || '')))
+    .map(l => ['<b>' + esc(l.name || '—') + '</b>', mailCell(l.email), esc(l.junk_reason || 'not a real prospect'), esc(l.created_on || '—')]);
+  openDrill('Signups left out of the numbers', rows.length + ' entries that are not real prospects',
+    ['Name', 'Email', 'Why it is excluded', 'Added on'], rows);
+}
 function drillStatus(st) {
-  const rows = (LAST.leads || []).filter(l => (l.status || 'No Status') === st)
+  const rows = (LAST.leads || []).filter(l => !l.is_junk && (l.status || 'No Status') === st)
     .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')))
     .map(l => ['<b>' + esc(l.name || '—') + '</b>', mailCell(l.email), esc(l.owner || '—'), esc(l.created_on || '—')]);
   openDrill(st, rows.length + (rows.length === 1 ? ' lead sitting at this stage' : ' leads sitting at this stage'),
     ['Client', 'Email', 'Owner', 'Added on'], rows);
 }
 function drillLeadSet(kind) {
-  const all = LAST.leads || [];
+  const all = (LAST.leads || []).filter(l => !l.is_junk);
   const sets = {
-    all:   { t: 'All leads added this month', f: () => all },
+    all:   { t: 'All real leads added this month', f: () => all },
     demo:  { t: 'Leads that got as far as a demo', f: () => all.filter(l => /^demo/i.test(l.status || '')) },
     won:   { t: 'Leads that became a paying customer', f: () => all.filter(l => /won/i.test(l.status || '')) }
   };
@@ -268,7 +275,7 @@ function drillLeadSet(kind) {
   openDrill(s.t, rows.length + ' of ' + all.length + ' leads this month', ['Client', 'Email', 'Stage', 'Owner', 'Added on'], rows);
 }
 function drillRepLeads(rep) {
-  const rows = (LAST.leads || []).filter(l => l.owner === rep)
+  const rows = (LAST.leads || []).filter(l => !l.is_junk && l.owner === rep)
     .sort((a, b) => String(b.created_on || '').localeCompare(String(a.created_on || '')))
     .map(l => ['<b>' + esc(l.name || '—') + '</b>', mailCell(l.email), esc(l.status || 'No Status'), esc(l.created_on || '—')]);
   openDrill('Leads added by ' + rep, rows.length + ' this month', ['Client', 'Email', 'Stage', 'Added on'], rows);
@@ -601,7 +608,7 @@ function render(D) {
 
   // renewals-only reps are left out here: they do not chase leads, book demos or make these calls
   const activeReps = D.activity.filter(a => (a.role || '').includes('New'));
-  const leadsOf = n => (D.leads || []).filter(l => l.owner === n);
+  const leadsOf = n => (D.leads || []).filter(l => !l.is_junk && l.owner === n);
   const leadCountOf = a => (D.leads && D.leads.length) ? leadsOf(a.rep_name).length : a.leads_month;
 
   document.getElementById('activity').innerHTML =
@@ -657,7 +664,9 @@ function render(D) {
   // ---------- lead funnel, rewritten as plain stacked bars ----------
   // counts come from the lead list itself, never from a stored total,
   // so a number on screen always matches the list behind it
-  const leads = D.leads || [];
+  const allLeadRows = D.leads || [];
+  const junkLeads = allLeadRows.filter(l => l.is_junk);
+  const leads = allLeadRows.filter(l => !l.is_junk);
   const fl = leads.length || Number(meta.funnel_leads) || 0;
   const fd = leads.length ? leads.filter(l => /^demo/i.test(l.status || '')).length : Number(meta.funnel_demo) || 0;
   const wonStatus = leads.length ? leads.filter(l => /won/i.test(l.status || '')).length
@@ -675,7 +684,8 @@ function render(D) {
     '<div class="note-line">Read it top to bottom: of the <b>' + fl + '</b> leads that came in this month, <b>' + fd +
     '</b> reached a demo and <b>' + wonStatus + '</b> have bought so far.' +
     (wonStatus < 2 ? ' A low bottom number is normal mid-month — leads from this month usually close in a later month.' : '') +
-    ' The ' + D.deals.length + ' deals closed this month are mostly renewals from existing customers, so they do not appear in this funnel.</div>';
+    ' The ' + D.deals.length + ' deals closed this month are mostly renewals from existing customers, so they do not appear in this funnel.' +
+    (junkLeads.length ? ' <b>' + junkLeads.length + ' test and spam signups are excluded</b> so the conversion rate reflects real prospects only.' : '') + '</div>';
 
   const statusCounts = leads.length
     ? Object.entries(leads.reduce(function (m, l) { const k = l.status || 'No Status'; m[k] = (m[k] || 0) + 1; return m; }, {}))
@@ -684,7 +694,10 @@ function render(D) {
   document.getElementById('statuschips').innerHTML = statusCounts.sort((a, b) => b.cnt - a.cnt).map(s =>
     '<div class="chip clickable' + (s.status === 'No Status' ? ' warn' : '') + '" onclick="drillStatus(\'' + esc(s.status).replace(/'/g, "\\'") + '\')" title="Click to see these clients">' +
     esc(s.status) + ' · ' + s.cnt + (s.status === 'No Status' ? ' ⚠' : '') + '</div>').join('') +
-    '<div class="note-line" style="width:100%"><b>Click any stage to see exactly which clients are sitting in it.</b> “No Status” means nobody has set a stage on that lead yet.</div>';
+    (junkLeads.length ? '<div class="chip clickable" style="background:#fff7ed;border-color:#fed7aa;color:#9a3412" onclick="drillJunk()" title="Click to see what was left out">' +
+      junkLeads.length + ' test &amp; spam signups &middot; not counted</div>' : '') +
+    '<div class="note-line" style="width:100%"><b>Click any stage to see exactly which clients are sitting in it.</b> “No Status” means nobody has set a stage on that lead yet.' +
+    (junkLeads.length ? ' ' + junkLeads.length + ' entries (internal tests, security researchers and junk signups) are kept out of every number on this page &mdash; click the orange chip to check what was excluded.' : '') + '</div>';
 
   const ptot = D.pipeline.reduce((s, p) => s + Number(p.amount), 0);
   document.getElementById('pipebox').innerHTML = D.pipeline.length ? '<table><tr class="hdr"><th>Deal</th><th class="r">Value</th><th>Stage</th><th>Owner</th></tr>' +
