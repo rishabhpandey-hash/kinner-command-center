@@ -61,6 +61,12 @@ footer{max-width:1180px;margin:10px auto 0;padding:0 20px;font-size:12px;color:v
 .gate{max-width:460px;margin:80px auto;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:36px;text-align:center}
 .gate h2{margin-bottom:10px}
 .gate p{color:var(--mut);font-size:14px}
+.gate input{width:100%;margin-top:18px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;font-size:14px;font-family:inherit}
+.gate input:focus{outline:none;border-color:var(--acc)}
+.gate button{width:100%;margin-top:10px;padding:12px;border:none;border-radius:10px;background:var(--acc);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.gate button:hover{opacity:.92}
+.gate .err{color:var(--bad);font-size:13px;margin-top:12px;min-height:18px}
+.forget{background:none;border:none;color:var(--mut);font-size:12px;text-decoration:underline;cursor:pointer;padding:0;font-family:inherit;margin-bottom:6px}
 .fresh{background:#eef2ff;border:1px solid #c7d2fe;color:#3730a3;border-radius:12px;padding:12px 18px;font-size:13.5px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;line-height:1.5}
 .fresh.stale{background:#fffbeb;border-color:#fde68a;color:#92400e}
 .card.danger{border:2px solid #fca5a5;background:#fff6f6}
@@ -123,18 +129,54 @@ th small{text-transform:none;letter-spacing:0;font-weight:500}
   <div class="card"><h2>What happened to this month&rsquo;s new leads <span class="tag">this month</span></h2><div id="funnel"></div><div style="margin-top:18px"><h2 style="margin-bottom:10px">Where those leads stand now</h2><div class="chips" id="statuschips"></div></div></div>
   <div class="card"><h2>Open pipeline <span class="tag">money in play</span></h2><div id="pipebox"></div></div>
 </main>
+<div class="gate" id="loaderr" style="display:none">
+  <h2>Cannot reach the server</h2>
+  <p>The dashboard could not load its figures. This is usually a network problem, not an access problem.</p>
+  <button onclick="document.getElementById('loaderr').style.display='none';reload(true)">Try again</button>
+</div>
 <div class="gate" id="gate" style="display:none">
-  <h2>Access required</h2>
-  <p>This dashboard needs a valid access link. Please open the exact link you were given (it contains an access key).</p>
+  <h2>Access code</h2>
+  <p>Enter the access code for this dashboard. It is remembered on this device, so you only need to do this once.</p>
+  <input id="codeInput" type="password" placeholder="Access code" autocomplete="current-password" onkeydown="if(event.key==='Enter')submitCode()">
+  <button onclick="submitCode()">Open dashboard</button>
+  <div class="err" id="codeErr"></div>
 </div>
 <footer id="foot"></footer>
 <script>
 const API = 'https://mgnjlymtjmcoskqinhid.supabase.co/functions/v1/kinner-data';
-const tok = new URLSearchParams(location.search).get('t');
+const TOKEN_KEY = 'kcc_access';
+let tok = null;
 
-function gate() {
+// localStorage throws in private mode / when storage is blocked, so every use is guarded
+function readStored() { try { return localStorage.getItem(TOKEN_KEY); } catch (e) { return null; } }
+function writeStored(v) { try { v ? localStorage.setItem(TOKEN_KEY, v) : localStorage.removeItem(TOKEN_KEY); } catch (e) {} }
+// strip ?t=... so the code never sits in the address bar, browser history or a referrer header
+function cleanUrl() { try { if (location.search) history.replaceState(null, '', location.pathname + location.hash); } catch (e) {} }
+
+let everRendered = false;
+
+function gate(msg) {
+  document.getElementById('main').style.display = 'none';
+  document.getElementById('loaderr').style.display = 'none';
   document.getElementById('gate').style.display = 'block';
-  document.getElementById('subtitle').textContent = 'not authorised';
+  document.getElementById('subtitle').textContent = 'access code needed';
+  document.getElementById('codeErr').textContent = msg || '';
+  const box = document.getElementById('codeInput');
+  box.value = '';
+  try { box.focus(); } catch (e) {}
+}
+
+function submitCode() {
+  const v = document.getElementById('codeInput').value.trim();
+  if (!v) { document.getElementById('codeErr').textContent = 'Please enter the access code.'; return; }
+  tok = v; writeStored(v);
+  document.getElementById('codeErr').textContent = '';
+  reload(true);
+}
+
+function forgetCode() {
+  writeStored(null); tok = null;
+  gate('Access code removed from this device.');
 }
 
 let lastSyncSeen = null;
@@ -168,6 +210,8 @@ function reload(manual) {
     })
     .then(function (D) {
       render(D);
+      everRendered = true;
+      document.getElementById('loaderr').style.display = 'none';
       const meta = {}; D.meta.forEach(function (m) { meta[m.k] = m.v; });
       const isNew = lastSyncSeen !== null && meta.last_sync !== lastSyncSeen;
       lastSyncSeen = meta.last_sync;
@@ -179,8 +223,19 @@ function reload(manual) {
     })
     .catch(function (err) {
       // only a real auth failure should hide the dashboard; a network blip must not
-      if (err.denied) { finish(gate); return; }
-      finish(function () { toast('Could not reach the server \u2014 showing last loaded figures', 'warn'); });
+      if (err.denied) {
+        writeStored(null); tok = null;
+        finish(function () { gate('That access code was not accepted. Please check it and try again.'); });
+        return;
+      }
+      finish(function () {
+        if (everRendered) { toast('Could not reach the server \u2014 showing last loaded figures', 'warn'); }
+        else {
+          document.getElementById('gate').style.display = 'none';
+          document.getElementById('loaderr').style.display = 'block';
+          document.getElementById('subtitle').textContent = 'could not load';
+        }
+      });
     });
 }
 
@@ -203,6 +258,7 @@ function render(D) {
   const meta = {}; D.meta.forEach(m => meta[m.k] = m.v);
   document.getElementById('main').style.display = 'flex';
   document.getElementById('gate').style.display = 'none';
+  document.getElementById('loaderr').style.display = 'none';
   document.getElementById('subtitle').textContent = meta.month + ' · Knorish sales';
 
   // ---------- how fresh is this data ----------
@@ -423,11 +479,17 @@ function render(D) {
     '<tr><td class="b">Total open pipeline</td><td class="r b" style="color:var(--acc)">' + inr(ptot) + '</td><td colspan="2"></td></tr></table>'
     : '<div class="alert warn"><span>⚠️</span><span>No open deals — the pipeline is empty. Deals should be created when a demo is booked, not only when payment arrives.</span></div>';
 
-  document.getElementById('foot').textContent = 'Sources: Zoho CRM (deals, leads, meetings, calls, tasks) + Chargebee (paid invoices, treated as the source of truth). USD converted at ' + meta.usd_inr_rate + '. Figures refresh automatically every day at 08:04 IST; “Check for updates” reloads the latest refreshed figures. “Collected automatically” is Chargebee autopay revenue that has not been typed as New or Renewal in the CRM.';
+  document.getElementById('foot').innerHTML = '<button class="forget" onclick="forgetCode()">Forget the access code on this device</button><br>';
+  document.getElementById('foot').innerHTML += 'Sources: Zoho CRM (deals, leads, meetings, calls, tasks) + Chargebee (paid invoices, treated as the source of truth). USD converted at ' + meta.usd_inr_rate + '. Figures refresh automatically every day at 08:04 IST; “Check for updates” reloads the latest refreshed figures. “Collected automatically” is Chargebee autopay revenue that has not been typed as New or Renewal in the CRM.';
 }
 
-if (!tok) { gate(); }
-else { reload(false); }
+(function boot() {
+  const fromUrl = new URLSearchParams(location.search).get('t');
+  if (fromUrl) { writeStored(fromUrl); cleanUrl(); tok = fromUrl; }
+  else { tok = readStored(); }
+  if (!tok) gate();
+  else reload(false);
+})();
 </script>
 </body>
 </html>
