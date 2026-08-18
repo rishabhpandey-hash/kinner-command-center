@@ -49,6 +49,44 @@ tr:last-child td{border-bottom:none}
 .chip.warn{background:#fffbeb;border-color:#fde68a;color:#92400e}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px}
 @media(max-width:860px){.grid2{grid-template-columns:1fr}.bar-name{width:120px}}
+@media(max-width:720px){
+  header{padding:18px 16px}
+  header h1{font-size:18px}
+  main{padding:16px 12px;gap:16px}
+  .card{padding:16px 14px;border-radius:12px}
+  .tile{padding:14px 16px}
+  .tile .val{font-size:23px}
+  .fresh{padding:11px 14px;font-size:12.5px}
+  /* tables stop being grids and become one labelled block per row */
+  .card table,.card tbody,.card tr,.card td{display:block;width:100%}
+  .card thead,.card tr.hdr{display:none}
+  .card tr{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px;background:var(--bg)}
+  .card tr:last-child{margin-bottom:0}
+  .card td{border:none;padding:5px 0;display:flex;justify-content:space-between;align-items:baseline;gap:14px;text-align:right}
+  .card td:before{content:attr(data-label);font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--mut);font-weight:600;text-align:left;flex:0 0 auto;max-width:45%}
+  .card td:empty{display:none}
+  .card td .prog{flex:1;min-width:90px}
+  /* revenue bars stack: name on its own line */
+  .bar-row{flex-wrap:wrap;gap:6px}
+  .bar-name{width:100%}
+  .bar-track{flex:1 1 auto;height:22px}
+  .bar-amt{width:auto}
+  /* funnel */
+  .fbar{gap:10px}
+  .fbar .fnum{width:44px;font-size:20px}
+  .fbar .fpct{width:64px;font-size:11.5px}
+  .fbar .flabel{font-size:12.5px}
+  .statrow{grid-template-columns:repeat(auto-fit,minmax(84px,1fr));gap:8px}
+  .stat{padding:10px 6px}
+  .stat .sv{font-size:19px}
+  .stat .sl{font-size:10.5px}
+  .repchip{min-width:0;flex:1 1 130px}
+  .person{padding:14px}
+}
+@media(max-width:400px){
+  .statrow{grid-template-columns:1fr 1fr}
+  .fbar .fpct{display:none}
+}
 .funnel{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .fstep .n{font-size:24px;font-weight:800}
 .fstep .l{font-size:12px;color:var(--mut)}
@@ -315,15 +353,15 @@ function render(D) {
       (unmatchedDeals.length ? ' ' + unmatchedDeals.length + ' CRM deal' + s_(unmatchedDeals.length) +
         (unmatchedDeals.length === 1 ? ' has' : ' have') + ' no matching payment, which may mean revenue is being over-reported.' : '') + '</span></div>';
     if (unmatchedInv.length) {
-      rh += '<table><tr><th>Client</th><th>Client email</th><th>Invoice</th><th class="r">Amount</th><th>Paid on</th><th>What needs doing</th></tr>' +
-        unmatchedInv.map(i => '<tr><td class="b">' + (i.customer_name || '—') + '</td><td>' + mailto(i.customer_email) +
-          '</td><td>#' + i.invoice_id + '</td><td class="r b">' + inr(i.inr_value) + '</td><td>' + String(i.paid_at).slice(0, 10) +
-          '</td><td>Create this deal in Zoho and mark it Closed Won</td></tr>').join('') + '</table>';
+      rh += '<table><tr class="hdr"><th>Client</th><th>Client email</th><th>Invoice</th><th class="r">Amount</th><th>Paid on</th><th>What needs doing</th></tr>' +
+        unmatchedInv.map(i => '<tr><td data-label="Client" class="b">' + (i.customer_name || '—') + '</td><td data-label="Client email">' + mailto(i.customer_email) +
+          '</td><td data-label="Invoice">#' + i.invoice_id + '</td><td data-label="Amount" class="r b">' + inr(i.inr_value) + '</td><td data-label="Paid on">' + String(i.paid_at).slice(0, 10) +
+          '</td><td data-label="What needs doing">Create this deal in Zoho and mark it Closed Won</td></tr>').join('') + '</table>';
     }
     if (unmatchedDeals.length) {
-      rh += '<table style="margin-top:14px"><tr><th>CRM deal with no payment</th><th>Client email</th><th class="r">Amount</th><th>Owner</th><th>Closing date</th></tr>' +
-        unmatchedDeals.map(d => '<tr><td class="b">' + d.deal_name + '</td><td>' + mailto(d.contact_email) + '</td><td class="r">' + inr(d.amount) +
-          '</td><td>' + d.owner + '</td><td>' + d.closing_date + '</td></tr>').join('') + '</table>';
+      rh += '<table style="margin-top:14px"><tr class="hdr"><th>CRM deal with no payment</th><th>Client email</th><th class="r">Amount</th><th>Owner</th><th>Closing date</th></tr>' +
+        unmatchedDeals.map(d => '<tr><td data-label="Deal" class="b">' + d.deal_name + '</td><td data-label="Client email">' + mailto(d.contact_email) + '</td><td data-label="Amount" class="r">' + inr(d.amount) +
+          '</td><td data-label="Owner">' + d.owner + '</td><td data-label="Closing date">' + d.closing_date + '</td></tr>').join('') + '</table>';
     }
   }
   document.getElementById('recon').innerHTML = '<h2>Revenue reconciliation <span class="tag">Chargebee payments vs CRM deals</span></h2>' + rh;
@@ -358,12 +396,12 @@ function render(D) {
 
   if (D.urgent.length) {
     const sorted = D.urgent.slice().sort((a, b) => daysLate(b.due_date) - daysLate(a.due_date));
-    uh += '<table><tr><th>Follow-up</th><th>Owner</th><th>Due date</th><th>How late</th></tr>' + sorted.map(u => {
+    uh += '<table><tr class="hdr"><th>Follow-up</th><th>Owner</th><th>Due date</th><th>How late</th></tr>' + sorted.map(u => {
       const late = daysLate(u.due_date);
       const badge = late > 7 ? '<span class="pill hi">' + late + ' days late</span>'
         : late > 0 ? '<span class="pill hi">' + late + (late === 1 ? ' day late' : ' days late') + '</span>'
         : '<span class="pill ok">due today</span>';
-      return '<tr><td>' + u.subject + '</td><td class="b">' + u.owner + '</td><td>' + u.due_date + '</td><td>' + badge + '</td></tr>';
+      return '<tr><td data-label="Follow-up">' + u.subject + '</td><td data-label="Owner" class="b">' + u.owner + '</td><td data-label="Due date">' + u.due_date + '</td><td data-label="How late">' + badge + '</td></tr>';
     }).join('') + '</table>';
   }
   document.getElementById('urgentbox').innerHTML = uh;
@@ -396,15 +434,15 @@ function render(D) {
 
   // ---------- per-rep target progress (each rep has their own target) ----------
   document.getElementById('targettbl').innerHTML =
-    '<table><tr><th>Sales person</th><th class="r">New business</th><th class="r">Renewals</th><th class="r">Total</th><th class="r">Their target</th><th style="width:26%">Progress</th><th class="r">%</th></tr>' +
+    '<table><tr class="hdr"><th>Sales person</th><th class="r">New business</th><th class="r">Renewals</th><th class="r">Total</th><th class="r">Their target</th><th style="width:26%">Progress</th><th class="r">%</th></tr>' +
     D.activity.map(a => {
       const n = a.rep_name, r = get(n), tot = r.nb + r.ex + r.un;
       const tgt = repTarget[n] || orgTarget;
       const pct = tot / tgt * 100;
-      return '<tr><td class="b">' + n + '</td><td class="r">' + inr(r.nb) + '</td><td class="r">' + inr(r.ex + r.un) +
-        '</td><td class="r b">' + inr(tot) + '</td><td class="r">' + inr(tgt) + '</td><td><div class="prog"><div style="width:' +
+      return '<tr><td data-label="Sales person" class="b">' + n + '</td><td data-label="New business" class="r">' + inr(r.nb) + '</td><td data-label="Renewals" class="r">' + inr(r.ex + r.un) +
+        '</td><td data-label="Total" class="r b">' + inr(tot) + '</td><td data-label="Their target" class="r">' + inr(tgt) + '</td><td data-label="Progress"><div class="prog"><div style="width:' +
         Math.min(100, pct).toFixed(1) + '%;background:' + (tot >= tgt ? 'var(--ok)' : 'var(--acc)') + '"></div></div></td>' +
-        '<td class="r b" style="color:' + (tot >= tgt ? 'var(--ok)' : 'var(--ink)') + '">' + Math.round(pct) + '%</td></tr>';
+        '<td data-label="Reached" class="r b" style="color:' + (tot >= tgt ? 'var(--ok)' : 'var(--ink)') + '">' + Math.round(pct) + '%</td></tr>';
     }).join('') + '</table>';
 
   // ---------- team activity: one plain-language card per person, no column-header decoding ----------
@@ -414,8 +452,12 @@ function render(D) {
   // A demo counts as actually given when the rep touched the lead record during or after the slot.
   // Reps almost never set the "Demo Given" status, but they always work the record around the call.
   const verdictOf = d => {
-    if (new Date(d.end_dt).getTime() > nowMs) return 'upcoming';
+    const end = new Date(d.end_dt).getTime();
+    if (end > nowMs) return 'upcoming';
     if (d.lead_modified && new Date(d.lead_modified).getTime() >= new Date(d.start_dt).getTime()) return 'given';
+    // a demo that finished after the last refresh has simply not been looked at yet:
+    // never hold it against the rep as a no-show
+    if (!d.lead_modified && syncedMs && end > syncedMs) return 'toosoon';
     return 'unconfirmed';
   };
   const countOf = (n, v) => demosOf(n).filter(d => verdictOf(d) === v).length;
@@ -435,6 +477,7 @@ function render(D) {
       const given = countOf(a.rep_name, 'given');
       const unconf = countOf(a.rep_name, 'unconfirmed');
       const ahead = countOf(a.rep_name, 'upcoming');
+      const toosoon = countOf(a.rep_name, 'toosoon');
       const stats = [
         { v: a.leads_month, l: 'new lead' + s_(a.leads_month) + '<br>they added' },
         { v: given, l: '<b style="color:var(--ok)">demo' + s_(given) + ' actually<br>given</b>', big: true },
@@ -451,6 +494,8 @@ function render(D) {
       return '<div class="person"><div class="person-top"><div class="person-name">' + a.rep_name + '</div>' + badge + '</div>' +
         '<div class="statrow">' + stats.map(s => '<div class="stat"><div class="sv">' + s.v + '</div><div class="sl">' + s.l + '</div></div>').join('') +
         '</div>' +
+        (toosoon ? '<div class="person-foot">' + toosoon + ' demo' + s_(toosoon) + ' finished since the last refresh &mdash; ' +
+          (toosoon === 1 ? 'its outcome' : 'their outcomes') + ' will show after tomorrow morning&rsquo;s update.</div>' : '') +
         (unconf ? '<div class="person-foot" style="color:var(--bad)"><b>' + unconf + ' booked demo' + s_(unconf) +
           ' with nothing recorded afterwards</b> &mdash; ' +
           demosOf(a.rep_name).filter(d => verdictOf(d) === 'unconfirmed')
@@ -490,9 +535,9 @@ function render(D) {
     '<div class="note-line" style="width:100%">“No Status” means nobody has set a status on that lead yet.</div>';
 
   const ptot = D.pipeline.reduce((s, p) => s + Number(p.amount), 0);
-  document.getElementById('pipebox').innerHTML = D.pipeline.length ? '<table><tr><th>Deal</th><th class="r">Value</th><th>Stage</th><th>Owner</th></tr>' +
-    D.pipeline.map(p => '<tr><td>' + p.deal_name + '</td><td class="r b">' + inr(p.amount) + '</td><td>' + p.stage + '</td><td>' + p.owner + '</td></tr>').join('') +
-    '<tr><td class="b">Total open pipeline</td><td class="r b" style="color:var(--acc)">' + inr(ptot) + '</td><td colspan="2"></td></tr></table>'
+  document.getElementById('pipebox').innerHTML = D.pipeline.length ? '<table><tr class="hdr"><th>Deal</th><th class="r">Value</th><th>Stage</th><th>Owner</th></tr>' +
+    D.pipeline.map(p => '<tr><td data-label="Deal">' + p.deal_name + '</td><td data-label="Value" class="r b">' + inr(p.amount) + '</td><td data-label="Stage">' + p.stage + '</td><td data-label="Owner">' + p.owner + '</td></tr>').join('') +
+    '<tr class="totalrow"><td data-label="Total open pipeline" class="b">Total open pipeline</td><td data-label="Total" class="r b" style="color:var(--acc)">' + inr(ptot) + '</td></tr></table>'
     : '<div class="alert warn"><span>⚠️</span><span>No open deals — the pipeline is empty. Deals should be created when a demo is booked, not only when payment arrives.</span></div>';
 
   document.getElementById('foot').innerHTML = '<button class="forget" onclick="forgetCode()">Forget the access code on this device</button><br>';
