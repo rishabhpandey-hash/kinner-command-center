@@ -16,6 +16,10 @@ header .sub{opacity:.85;font-size:13px;margin-top:4px}
 #refreshBtn{background:#fff;color:#1e1b4b;border:none;padding:9px 18px;border-radius:99px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.2)}
 #refreshBtn:hover{transform:translateY(-1px)}
 #refreshBtn:disabled{opacity:.6;cursor:wait}
+#toast{position:fixed;left:50%;top:14px;transform:translateX(-50%) translateY(-14px);z-index:99;background:#111827;color:#fff;padding:10px 20px;border-radius:99px;font-size:13px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;max-width:90vw;text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.ok{background:#059669}
+#toast.warn{background:#d97706}
 main{max-width:1180px;margin:0 auto;padding:26px 20px;display:flex;flex-direction:column;gap:22px}
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
 .tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:0 1px 3px rgba(17,24,39,.05)}
@@ -64,6 +68,7 @@ footer{max-width:1180px;margin:10px auto 0;padding:0 20px;font-size:12px;color:v
 </style>
 </head>
 <body>
+<div id="toast"></div>
 <header>
   <div>
     <h1>Knorish Sales Command Center</h1>
@@ -71,7 +76,7 @@ footer{max-width:1180px;margin:10px auto 0;padding:0 20px;font-size:12px;color:v
   </div>
   <div class="hdr-right">
     <div class="badge">&#10003; Machine-verified against Chargebee</div>
-    <button id="refreshBtn" onclick="reload()">&#8635; Refresh</button>
+    <button id="refreshBtn" onclick="reload(true)">&#8635; Check for updates</button>
   </div>
 </header>
 <main id="main" style="display:none">
@@ -105,13 +110,51 @@ function gate() {
   document.getElementById('subtitle').textContent = 'not authorised';
 }
 
-function reload() {
+let lastSyncSeen = null;
+
+function toast(msg, kind) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show' + (kind ? ' ' + kind : '');
+  clearTimeout(t._h);
+  t._h = setTimeout(function () { t.className = ''; }, 3600);
+}
+
+function reload(manual) {
   const btn = document.getElementById('refreshBtn');
-  btn.disabled = true; btn.innerHTML = '&#8635; Refreshing…';
-  fetch(API + '?t=' + encodeURIComponent(tok))
-    .then(r => { if (!r.ok) throw new Error('denied'); return r.json(); })
-    .then(D => { render(D); btn.disabled = false; btn.innerHTML = '&#8635; Refresh'; })
-    .catch(() => { btn.disabled = false; btn.innerHTML = '&#8635; Refresh'; gate(); });
+  const started = Date.now();
+  btn.disabled = true; btn.innerHTML = '&#8635; Checking&hellip;';
+
+  // keep the busy state on screen long enough that a click always registers
+  const finish = function (after) {
+    setTimeout(function () {
+      btn.disabled = false; btn.innerHTML = '&#8635; Check for updates';
+      after();
+    }, Math.max(0, 500 - (Date.now() - started)));
+  };
+
+  fetch(API + '?t=' + encodeURIComponent(tok), { cache: 'no-store' })
+    .then(function (r) {
+      if (r.status === 401 || r.status === 403) { const e = new Error('denied'); e.denied = true; throw e; }
+      if (!r.ok) throw new Error('http ' + r.status);
+      return r.json();
+    })
+    .then(function (D) {
+      render(D);
+      const meta = {}; D.meta.forEach(function (m) { meta[m.k] = m.v; });
+      const isNew = lastSyncSeen !== null && meta.last_sync !== lastSyncSeen;
+      lastSyncSeen = meta.last_sync;
+      finish(function () {
+        if (!manual) return;
+        if (isNew) toast('New data loaded', 'ok');
+        else toast('Already up to date \u00b7 last sync ' + meta.last_sync, '');
+      });
+    })
+    .catch(function (err) {
+      // only a real auth failure should hide the dashboard; a network blip must not
+      if (err.denied) { finish(gate); return; }
+      finish(function () { toast('Could not reach the server \u2014 showing last loaded figures', 'warn'); });
+    });
 }
 
 function render(D) {
@@ -119,7 +162,7 @@ function render(D) {
   const meta = {}; D.meta.forEach(m => meta[m.k] = m.v);
   document.getElementById('main').style.display = 'flex';
   document.getElementById('gate').style.display = 'none';
-  document.getElementById('subtitle').textContent = meta.month + ' · last synced ' + meta.last_sync;
+  document.getElementById('subtitle').textContent = meta.month + ' \u00b7 data synced ' + meta.last_sync + ' \u00b7 checked ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
   const cbTotal = D.invoices.reduce((s, i) => s + Number(i.inr_value), 0);
   const crmTotal = D.deals.reduce((s, d) => s + Number(d.amount), 0);
@@ -221,11 +264,11 @@ function render(D) {
     '<tr><td class="b">Total open pipeline</td><td class="r b" style="color:var(--acc)">' + inr(ptot) + '</td><td colspan="2"></td></tr></table>'
     : '<div class="alert warn"><span>&#9888;&#65039;</span><span>No open deals — pipeline is empty. Deals should be created when a demo is booked, not at payment.</span></div>';
 
-  document.getElementById('foot').textContent = 'Sources: Zoho CRM (deals, leads, meetings, calls, tasks) + Chargebee (paid invoices, source of truth). USD converted at ' + meta.usd_inr_rate + '. Roles: Longjam — new + renewal · Subhashree — new business · Rishabh & Prerak — renewals. Auto-collected = Chargebee autopay revenue not yet typed in CRM.';
+  document.getElementById('foot').textContent = 'Sources: Zoho CRM (deals, leads, meetings, calls, tasks) + Chargebee (paid invoices, source of truth). USD converted at ' + meta.usd_inr_rate + '. Roles: Longjam — new + renewal · Subhashree — new business · Rishabh & Prerak — renewals. Auto-collected = Chargebee autopay revenue not yet typed in CRM. Figures re-sync automatically every day at 08:04 IST; \u201cCheck for updates\u201d reloads the latest synced figures.';
 }
 
 if (!tok) { gate(); }
-else { reload(); }
+else { reload(false); }
 </script>
 </body>
 </html>
