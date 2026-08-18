@@ -93,6 +93,7 @@ tr:last-child td{border-bottom:none}
 .pill{font-size:11px;padding:2px 8px;border-radius:99px;font-weight:700}
 .pill.hi{background:#fee2e2;color:#991b1b}
 .pill.ok{background:#dcfce7;color:#166534}
+.totalrow td{border-top:2px solid var(--line);background:var(--bg)}
 .prog{background:#eef0f7;border-radius:8px;height:10px;overflow:hidden}
 .prog>div{height:100%;background:var(--ok)}
 footer{max-width:1180px;margin:10px auto 0;padding:0 20px;font-size:12px;color:var(--mut)}
@@ -324,6 +325,9 @@ function render(D) {
   const orgTarget = Number(meta.org_revenue_target || 400000);
 
   const repTarget = {}; (D.reps || []).forEach(r => repTarget[r.rep_name] = Number(r.revenue_target || orgTarget));
+  const teamTarget = (D.reps && D.reps.length)
+    ? D.reps.reduce((s, r) => s + Number(r.revenue_target || 0), 0)
+    : orgTarget;
   const demoTarget = Number(meta.demo_target_week || 5);
   const newReps = D.activity.filter(a => (a.role || '').includes('New')).map(a => a.rep_name);
   const renReps = D.activity.filter(a => (a.role || '').includes('Renewal')).map(a => a.rep_name);
@@ -334,9 +338,10 @@ function render(D) {
     { lbl: 'Difference', val: (gap >= 0 ? '+' : '−') + inr(Math.abs(gap)),
       note: unmatchedInv.length + ' payment' + s_(unmatchedInv.length) + ' missing from CRM, ' + unmatchedDeals.length + ' deal' + s_(unmatchedDeals.length) + ' with no payment',
       color: Math.abs(gap) < 100 ? 'var(--ok)' : 'var(--warn)' },
-    { lbl: 'Progress to ' + inr(orgTarget) + ' team target', val: Math.round(cbTotal / orgTarget * 100) + '%',
-      note: inr(cbTotal) + ' of ' + inr(orgTarget) + (cbTotal >= orgTarget ? ' — target beaten ✓' : ''),
-      color: cbTotal >= orgTarget ? 'var(--ok)' : 'var(--ink)' }
+    { lbl: 'Progress to team target', val: Math.round(crmTotal / teamTarget * 100) + '%',
+      note: inr(crmTotal) + ' of ' + inr(teamTarget) + ' — everyone&rsquo;s targets added together' +
+            (crmTotal >= teamTarget ? ' — beaten ✓' : ''),
+      color: crmTotal >= teamTarget ? 'var(--ok)' : 'var(--ink)' }
   ];
   document.getElementById('tiles').innerHTML = tiles.map(t =>
     '<div class="tile"><div class="lbl">' + t.lbl + '</div><div class="val" style="color:' + (t.color || 'var(--ink)') + '">' +
@@ -443,7 +448,20 @@ function render(D) {
         '</td><td data-label="Total" class="r b">' + inr(tot) + '</td><td data-label="Their target" class="r">' + inr(tgt) + '</td><td data-label="Progress"><div class="prog"><div style="width:' +
         Math.min(100, pct).toFixed(1) + '%;background:' + (tot >= tgt ? 'var(--ok)' : 'var(--acc)') + '"></div></div></td>' +
         '<td data-label="Reached" class="r b" style="color:' + (tot >= tgt ? 'var(--ok)' : 'var(--ink)') + '">' + Math.round(pct) + '%</td></tr>';
-    }).join('') + '</table>';
+    }).join('') +
+    (function () {
+      const t = D.activity.reduce(function (s, a) {
+        const r = get(a.rep_name);
+        s.nb += r.nb; s.ren += r.ex + r.un; s.tgt += (repTarget[a.rep_name] || orgTarget);
+        return s;
+      }, { nb: 0, ren: 0, tgt: 0 });
+      const tot = t.nb + t.ren, pct = t.tgt ? tot / t.tgt * 100 : 0;
+      return '<tr class="totalrow"><td data-label="Whole team" class="b">Whole team</td><td data-label="New business" class="r b">' + inr(t.nb) +
+        '</td><td data-label="Renewals" class="r b">' + inr(t.ren) + '</td><td data-label="Total" class="r b">' + inr(tot) +
+        '</td><td data-label="Team target" class="r b">' + inr(t.tgt) + '</td><td data-label="Progress"><div class="prog"><div style="width:' +
+        Math.min(100, pct).toFixed(1) + '%;background:' + (tot >= t.tgt ? 'var(--ok)' : 'var(--acc)') + '"></div></div></td>' +
+        '<td data-label="Reached" class="r b" style="color:' + (tot >= t.tgt ? 'var(--ok)' : 'var(--ink)') + '">' + Math.round(pct) + '%</td></tr>';
+    })() + '</table>';
 
   // ---------- team activity: one plain-language card per person, no column-header decoding ----------
   // demos are split live (not frozen at sync time) into ones whose slot has passed and ones still ahead
