@@ -81,6 +81,19 @@ footer{max-width:1180px;margin:10px auto 0;padding:0 20px;font-size:12px;color:v
 .fbar .fpct{width:96px;text-align:right;font-size:12.5px;color:var(--mut);font-weight:600;flex-shrink:0}
 .note-line{font-size:12.5px;color:var(--mut);margin-top:12px;line-height:1.6}
 td a{color:var(--acc);text-decoration:none}td a:hover{text-decoration:underline}
+.person{border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:12px;background:#fff}
+.person:last-child{margin-bottom:0}
+.person-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.person-name{font-size:15.5px;font-weight:800}
+.statrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:12px}
+.stat{background:var(--bg);border-radius:10px;padding:12px 10px;text-align:center}
+.stat .sv{font-size:23px;font-weight:800;line-height:1.1}
+.stat .sl{font-size:11.5px;color:var(--mut);margin-top:5px;line-height:1.4}
+.person-foot{font-size:12.5px;margin-top:13px;padding-top:12px;border-top:1px solid #f1f2f6;color:var(--mut)}
+.badge2{font-size:11.5px;font-weight:700;padding:4px 12px;border-radius:99px;white-space:nowrap}
+.badge2.good{background:#dcfce7;color:#166534}
+.badge2.bad{background:#fee2e2;color:#991b1b}
+.badge2.idle{background:var(--bg);color:var(--mut)}
 th small{text-transform:none;letter-spacing:0;font-weight:500}
 </style>
 </head>
@@ -106,10 +119,8 @@ th small{text-transform:none;letter-spacing:0;font-weight:500}
     <div class="card"><h2>&#128260; Renewal revenue <span class="tag">money from existing customers</span></h2><div id="renbars"></div><div class="legend"><span><span class="dot" style="background:var(--ren)"></span>Renewal logged by the rep</span><span><span class="dot" style="background:var(--unt)"></span>Collected automatically (Chargebee autopay)</span></div></div>
   </div>
   <div class="card"><h2>Progress against each person&rsquo;s monthly target <span class="tag">new + renewal added together</span></h2><div id="targettbl"></div></div>
-  <div class="grid2">
-    <div class="card"><h2>Team activity <span class="tag">this month</span></h2><div id="activity"></div></div>
-    <div class="card"><h2>What happened to this month&rsquo;s new leads <span class="tag">this month</span></h2><div id="funnel"></div><div style="margin-top:18px"><h2 style="margin-bottom:10px">Where those leads stand now</h2><div class="chips" id="statuschips"></div></div></div>
-  </div>
+  <div class="card"><h2>What each person has done this month <span class="tag">team activity</span></h2><div id="activity"></div></div>
+  <div class="card"><h2>What happened to this month&rsquo;s new leads <span class="tag">this month</span></h2><div id="funnel"></div><div style="margin-top:18px"><h2 style="margin-bottom:10px">Where those leads stand now</h2><div class="chips" id="statuschips"></div></div></div>
   <div class="card"><h2>Open pipeline <span class="tag">money in play</span></h2><div id="pipebox"></div></div>
 </main>
 <div class="gate" id="gate" style="display:none">
@@ -188,6 +199,7 @@ function ageLabel(hrs) {
 
 function render(D) {
   const inr = n => '₹' + new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(Math.round(n));
+  const s_ = n => n === 1 ? '' : 's';
   const meta = {}; D.meta.forEach(m => meta[m.k] = m.v);
   document.getElementById('main').style.display = 'flex';
   document.getElementById('gate').style.display = 'none';
@@ -226,7 +238,7 @@ function render(D) {
     { lbl: 'Money actually collected', val: inr(cbTotal), note: D.invoices.length + ' paid invoices in Chargebee — the source of truth' },
     { lbl: 'Recorded in the CRM', val: inr(crmTotal), note: D.deals.length + ' closed-won deals in Zoho' },
     { lbl: 'Difference', val: (gap >= 0 ? '+' : '−') + inr(Math.abs(gap)),
-      note: unmatchedInv.length + ' payment(s) missing from CRM, ' + unmatchedDeals.length + ' deal(s) with no payment',
+      note: unmatchedInv.length + ' payment' + s_(unmatchedInv.length) + ' missing from CRM, ' + unmatchedDeals.length + ' deal' + s_(unmatchedDeals.length) + ' with no payment',
       color: Math.abs(gap) < 100 ? 'var(--ok)' : 'var(--warn)' },
     { lbl: 'Progress to ' + inr(orgTarget) + ' team target', val: Math.round(cbTotal / orgTarget * 100) + '%',
       note: inr(cbTotal) + ' of ' + inr(orgTarget) + (cbTotal >= orgTarget ? ' — target beaten ✓' : ''),
@@ -242,9 +254,10 @@ function render(D) {
   if (!unmatchedInv.length && !unmatchedDeals.length) {
     rh += '<div class="alert ok"><span>✅</span><span><b>Everything matches.</b> Every payment collected in Chargebee has a matching deal in the CRM, and every CRM deal has a real payment behind it.</span></div>';
   } else {
-    rh += '<div class="alert warn"><span>⚠️</span><span><b>' + unmatchedInv.length +
-      ' payment(s) were collected but never entered in the CRM</b> — real money that is not credited to any rep.' +
-      (unmatchedDeals.length ? ' ' + unmatchedDeals.length + ' CRM deal(s) have no matching payment, which may mean revenue is being over-reported.' : '') + '</span></div>';
+    rh += '<div class="alert warn"><span>⚠️</span><span><b>' + unmatchedInv.length + ' payment' + s_(unmatchedInv.length) +
+      (unmatchedInv.length === 1 ? ' was' : ' were') + ' collected but never entered in the CRM</b> — real money that is not credited to any rep.' +
+      (unmatchedDeals.length ? ' ' + unmatchedDeals.length + ' CRM deal' + s_(unmatchedDeals.length) +
+        (unmatchedDeals.length === 1 ? ' has' : ' have') + ' no matching payment, which may mean revenue is being over-reported.' : '') + '</span></div>';
     if (unmatchedInv.length) {
       rh += '<table><tr><th>Client</th><th>Client email</th><th>Invoice</th><th class="r">Amount</th><th>Paid on</th><th>What needs doing</th></tr>' +
         unmatchedInv.map(i => '<tr><td class="b">' + (i.customer_name || '—') + '</td><td>' + mailto(i.customer_email) +
@@ -271,8 +284,8 @@ function render(D) {
   const dueTodayCount = D.urgent.length - overdueOnly.length;
 
   let uh = overdueOnly.length
-    ? '<div class="alert warn"><span>⚠️</span><span><b>' + overdueOnly.length +
-      ' follow-up(s) are past their due date and still not done</b>' +
+    ? '<div class="alert warn"><span>⚠️</span><span><b>' + overdueOnly.length + ' follow-up' + s_(overdueOnly.length) +
+      (overdueOnly.length === 1 ? ' is' : ' are') + ' past the due date and still not done</b>' +
       (dueTodayCount ? ', and ' + dueTodayCount + ' more are due today' : '') +
       '. Each overdue one is a customer still waiting on a reply.</span></div>'
     : '<div class="alert ok"><span>✅</span><span><b>Nothing is overdue.</b> Every follow-up is on schedule' +
@@ -338,17 +351,31 @@ function render(D) {
         '<td class="r b" style="color:' + (tot >= tgt ? 'var(--ok)' : 'var(--ink)') + '">' + Math.round(pct) + '%</td></tr>';
     }).join('') + '</table>';
 
-  // ---------- team activity, plain words only ----------
+  // ---------- team activity: one plain-language card per person, no column-header decoding ----------
   document.getElementById('activity').innerHTML =
-    '<table><tr><th>Sales person</th><th class="r">New leads</th><th class="r">Demos<br><small>this month</small></th><th class="r">Demos<br><small>this week</small></th><th class="r">Calls</th><th class="r">Follow-ups<br><small>pending</small></th><th class="r">Overdue</th></tr>' +
-    D.activity.map(a => {
-      const hit = a.demos_week >= demoTarget;
-      return '<tr><td class="b">' + a.rep_name + '</td><td class="r">' + a.leads_month + '</td><td class="r">' + a.demos_month +
-        '</td><td class="r"><span style="font-weight:700;color:' + (hit ? 'var(--ok)' : 'var(--bad)') + '">' + a.demos_week +
-        '</span><span style="color:var(--mut)"> of ' + demoTarget + '</span></td><td class="r">' + a.calls_month +
-        '</td><td class="r">' + a.open_tasks + '</td><td class="r">' +
-        (a.urgent_tasks ? '<span class="pill hi">' + a.urgent_tasks + '</span>' : '<span class="pill ok">0</span>') + '</td></tr>';
-    }).join('') + '</table>';
+    '<div class="note-line" style="margin-top:0;margin-bottom:16px">One card per person. Each number is what they did this month, except the last box, which is just this week. Everyone is expected to run ' +
+    demoTarget + ' demos a week.</div>' +
+    D.activity.slice().sort((a, b) => (b.leads_month + b.demos_month + b.calls_month) - (a.leads_month + a.demos_month + a.calls_month)).map(a => {
+      const noDemos = !a.demos_month && !a.demos_week;
+      const badge = noDemos ? '<span class="badge2 idle">No demos logged this month</span>'
+        : a.demos_week >= demoTarget ? '<span class="badge2 good">✓ Met this week&rsquo;s demo target</span>'
+        : '<span class="badge2 bad">Short of this week&rsquo;s demo target</span>';
+      const stats = [
+        { v: a.leads_month, l: 'new lead' + s_(a.leads_month) + '<br>they added' },
+        { v: a.demos_month, l: 'demo' + s_(a.demos_month) + '<br>they ran' },
+        { v: a.calls_month, l: 'call' + s_(a.calls_month) + '<br>they made' },
+        { v: a.demos_week, l: 'demo' + s_(a.demos_week) + ' this week<br>(needs ' + demoTarget + ')' }
+      ];
+      const late = lateBy[a.rep_name] || 0;
+      const foot = a.open_tasks
+        ? '<b style="color:' + (late ? 'var(--bad)' : 'var(--ink)') + '">' + a.open_tasks + ' follow-up' + s_(a.open_tasks) +
+          ' still waiting to be done</b>' +
+          (late ? ' &mdash; and ' + late + (late === 1 ? ' of those is' : ' of those are') + ' already past the due date.' : ' &mdash; none of them overdue.')
+        : 'No follow-ups outstanding.';
+      return '<div class="person"><div class="person-top"><div class="person-name">' + a.rep_name + '</div>' + badge + '</div>' +
+        '<div class="statrow">' + stats.map(s => '<div class="stat"><div class="sv">' + s.v + '</div><div class="sl">' + s.l + '</div></div>').join('') +
+        '</div><div class="person-foot">' + foot + '</div></div>';
+    }).join('');
 
   // ---------- lead funnel, rewritten as plain stacked bars ----------
   const fl = Number(meta.funnel_leads) || 0;
