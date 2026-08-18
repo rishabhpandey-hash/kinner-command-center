@@ -11,7 +11,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
 header{background:linear-gradient(135deg,#1e1b4b,#4f46e5);color:#fff;padding:26px 32px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
 header h1{font-size:22px;font-weight:700;letter-spacing:.2px}
 header .sub{opacity:.85;font-size:13px;margin-top:4px}
+.hdr-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .badge{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);padding:6px 14px;border-radius:99px;font-size:12.5px}
+#refreshBtn{background:#fff;color:#1e1b4b;border:none;padding:9px 18px;border-radius:99px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+#refreshBtn:hover{transform:translateY(-1px)}
+#refreshBtn:disabled{opacity:.6;cursor:wait}
 main{max-width:1180px;margin:0 auto;padding:26px 20px;display:flex;flex-direction:column;gap:22px}
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
 .tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:0 1px 3px rgba(17,24,39,.05)}
@@ -19,7 +23,7 @@ main{max-width:1180px;margin:0 auto;padding:26px 20px;display:flex;flex-directio
 .tile .val{font-size:26px;font-weight:800;margin-top:6px}
 .tile .note{font-size:12.5px;color:var(--mut);margin-top:4px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;box-shadow:0 1px 3px rgba(17,24,39,.05)}
-.card h2{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card h2{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .card h2 .tag{font-size:11px;font-weight:600;color:var(--mut);background:var(--bg);padding:3px 9px;border-radius:99px}
 table{width:100%;border-collapse:collapse;font-size:13.5px}
 th{text-align:left;color:var(--mut);font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;border-bottom:1px solid var(--line)}
@@ -27,11 +31,11 @@ td{padding:9px 10px;border-bottom:1px solid #f1f2f6}
 tr:last-child td{border-bottom:none}
 .r{text-align:right}.b{font-weight:700}
 .bar-row{display:flex;align-items:center;gap:12px;margin-bottom:12px}
-.bar-name{width:170px;font-size:13px;font-weight:600;flex-shrink:0}
+.bar-name{width:190px;font-size:13px;font-weight:600;flex-shrink:0;line-height:1.3}
+.bar-name small{display:block;color:var(--mut);font-weight:500;font-size:11px}
 .bar-track{flex:1;background:#eef0f7;border-radius:8px;height:26px;position:relative;overflow:hidden}
 .seg{height:100%;float:left}
 .bar-amt{width:110px;text-align:right;font-size:13px;font-weight:700;flex-shrink:0}
-.tgt{position:absolute;top:-4px;bottom:-4px;width:2px;background:#111827;opacity:.65}
 .legend{display:flex;gap:16px;font-size:12.5px;color:var(--mut);margin-top:6px;flex-wrap:wrap}
 .dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle}
 .alert{border-radius:12px;padding:14px 18px;font-size:13.5px;display:flex;gap:10px;align-items:flex-start;margin-bottom:14px}
@@ -41,7 +45,7 @@ tr:last-child td{border-bottom:none}
 .chip{padding:7px 13px;border-radius:99px;font-size:12.5px;font-weight:600;background:var(--bg);border:1px solid var(--line)}
 .chip.warn{background:#fffbeb;border-color:#fde68a;color:#92400e}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px}
-@media(max-width:860px){.grid2{grid-template-columns:1fr}.bar-name{width:110px}}
+@media(max-width:860px){.grid2{grid-template-columns:1fr}.bar-name{width:120px}}
 .funnel{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .fstep{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:14px 22px;text-align:center;min-width:130px}
 .fstep .n{font-size:24px;font-weight:800}
@@ -50,6 +54,9 @@ tr:last-child td{border-bottom:none}
 .pill{font-size:11px;padding:2px 8px;border-radius:99px;font-weight:700}
 .pill.hi{background:#fee2e2;color:#991b1b}
 .pill.ok{background:#dcfce7;color:#166534}
+.pill.role{background:#eef2ff;color:#3730a3}
+.prog{background:#eef0f7;border-radius:8px;height:10px;overflow:hidden}
+.prog>div{height:100%;background:var(--ok)}
 footer{max-width:1180px;margin:10px auto 0;padding:0 20px;font-size:12px;color:var(--mut)}
 .gate{max-width:460px;margin:80px auto;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:36px;text-align:center}
 .gate h2{margin-bottom:10px}
@@ -62,12 +69,19 @@ footer{max-width:1180px;margin:10px auto 0;padding:0 20px;font-size:12px;color:v
     <h1>Knorish Sales Command Center</h1>
     <div class="sub" id="subtitle">loading&hellip;</div>
   </div>
-  <div class="badge">&#10003; Machine-verified against Chargebee</div>
+  <div class="hdr-right">
+    <div class="badge">&#10003; Machine-verified against Chargebee</div>
+    <button id="refreshBtn" onclick="reload()">&#8635; Refresh</button>
+  </div>
 </header>
 <main id="main" style="display:none">
   <div class="tiles" id="tiles"></div>
   <div class="card" id="recon"></div>
-  <div class="card"><h2>Revenue by rep &mdash; New vs Renewal <span class="tag">CRM &middot; this month &middot; target &#8377;4L each</span></h2><div id="revbars"></div><div class="legend"><span><span class="dot" style="background:var(--new)"></span>New Business</span><span><span class="dot" style="background:var(--ren)"></span>Renewal / Existing</span><span><span class="dot" style="background:var(--unt)"></span>Untyped (auto-synced)</span><span>&#9474; black line = &#8377;4,00,000 target</span></div></div>
+  <div class="grid2">
+    <div class="card"><h2>&#127919; New Business revenue <span class="tag">hunting &middot; this month</span></h2><div id="newbars"></div></div>
+    <div class="card"><h2>&#128260; Renewal revenue <span class="tag">farming &middot; this month</span></h2><div id="renbars"></div><div class="legend"><span><span class="dot" style="background:var(--ren)"></span>Renewals (logged by rep)</span><span><span class="dot" style="background:var(--unt)"></span>Auto-collected (Chargebee autopay)</span></div></div>
+  </div>
+  <div class="card"><h2>Target progress &mdash; total revenue vs &#8377;4,00,000 <span class="tag">new + renewal combined</span></h2><div id="targettbl"></div></div>
   <div class="grid2">
     <div class="card"><h2>Team activity <span class="tag">this month</span></h2><div id="activity"></div></div>
     <div class="card"><h2>Lead funnel <span class="tag">this month</span></h2><div class="funnel" id="funnel"></div><div style="margin-top:16px"><h2 style="margin-bottom:10px">Lead status <span class="tag">incl. untouched</span></h2><div class="chips" id="statuschips"></div></div></div>
@@ -91,10 +105,20 @@ function gate() {
   document.getElementById('subtitle').textContent = 'not authorised';
 }
 
+function reload() {
+  const btn = document.getElementById('refreshBtn');
+  btn.disabled = true; btn.innerHTML = '&#8635; Refreshing…';
+  fetch(API + '?t=' + encodeURIComponent(tok))
+    .then(r => { if (!r.ok) throw new Error('denied'); return r.json(); })
+    .then(D => { render(D); btn.disabled = false; btn.innerHTML = '&#8635; Refresh'; })
+    .catch(() => { btn.disabled = false; btn.innerHTML = '&#8635; Refresh'; gate(); });
+}
+
 function render(D) {
   const inr = n => '₹' + new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(Math.round(n));
   const meta = {}; D.meta.forEach(m => meta[m.k] = m.v);
   document.getElementById('main').style.display = 'flex';
+  document.getElementById('gate').style.display = 'none';
   document.getElementById('subtitle').textContent = meta.month + ' · last synced ' + meta.last_sync;
 
   const cbTotal = D.invoices.reduce((s, i) => s + Number(i.inr_value), 0);
@@ -104,6 +128,11 @@ function render(D) {
   const matchedIds = new Set(D.invoices.map(i => i.matched_deal).filter(Boolean));
   const unmatchedDeals = D.deals.filter(d => !matchedIds.has(d.zoho_id));
   const target = Number(meta.org_revenue_target || 400000);
+
+  // roles
+  const roleOf = {}; D.activity.forEach(a => roleOf[a.rep_name] = a.role || '');
+  const newReps = D.activity.filter(a => (a.role||'').includes('New')).map(a => a.rep_name);
+  const renReps = D.activity.filter(a => (a.role||'').includes('Renewal')).map(a => a.rep_name);
 
   const tiles = [
     { lbl: 'Verified revenue (Chargebee)', val: inr(cbTotal), note: D.invoices.length + ' paid invoices — source of truth' },
@@ -130,29 +159,45 @@ function render(D) {
   }
   document.getElementById('recon').innerHTML = '<h2>Revenue reconciliation <span class="tag">Chargebee vs CRM</span></h2>' + rh;
 
-  const byRep = {};
+  // revenue buckets per rep
+  const rev = {};
   D.deals.forEach(d => {
-    byRep[d.owner] = byRep[d.owner] || { nb: 0, ex: 0, un: 0 };
+    rev[d.owner] = rev[d.owner] || { nb: 0, ex: 0, un: 0 };
     const a = Number(d.amount);
-    if (d.deal_type === 'New Business') byRep[d.owner].nb += a;
-    else if (d.deal_type === 'Existing Business') byRep[d.owner].ex += a;
-    else byRep[d.owner].un += a;
+    if (d.deal_type === 'New Business') rev[d.owner].nb += a;
+    else if (d.deal_type === 'Existing Business') rev[d.owner].ex += a;
+    else rev[d.owner].un += a;
   });
-  const maxRev = Math.max(target * 1.15, ...Object.values(byRep).map(r => r.nb + r.ex + r.un));
-  document.getElementById('revbars').innerHTML = Object.entries(byRep).sort((a, b) => (b[1].nb + b[1].ex + b[1].un) - (a[1].nb + a[1].ex + a[1].un)).map(([name, r]) => {
-    const tot = r.nb + r.ex + r.un;
-    const w = v => (v / maxRev * 100).toFixed(2) + '%';
-    return '<div class="bar-row"><div class="bar-name">' + name + '</div><div class="bar-track">' +
-      '<div class="seg" style="width:' + w(r.nb) + ';background:var(--new)" title="New ' + inr(r.nb) + '"></div>' +
-      '<div class="seg" style="width:' + w(r.ex) + ';background:var(--ren)" title="Renewal ' + inr(r.ex) + '"></div>' +
-      '<div class="seg" style="width:' + w(r.un) + ';background:var(--unt)" title="Untyped ' + inr(r.un) + '"></div>' +
-      '<div class="tgt" style="left:' + w(target) + '"></div></div>' +
-      '<div class="bar-amt">' + inr(tot) + '</div></div>';
+  const get = n => rev[n] || { nb: 0, ex: 0, un: 0 };
+
+  // NEW BUSINESS chart (new-role reps only, new-business amounts only)
+  const nbMax = Math.max(1, ...newReps.map(n => get(n).nb));
+  document.getElementById('newbars').innerHTML = newReps.sort((a,b)=>get(b).nb-get(a).nb).map(n => {
+    const v = get(n).nb;
+    return '<div class="bar-row"><div class="bar-name">' + n + '<small>' + roleOf[n] + '</small></div><div class="bar-track"><div class="seg" style="width:' + (v/nbMax*100).toFixed(2) + '%;background:var(--new)"></div></div><div class="bar-amt">' + inr(v) + '</div></div>';
+  }).join('') || '<div class="alert warn"><span>&#9888;&#65039;</span><span>No new-business revenue yet this month.</span></div>';
+
+  // RENEWAL chart (renewal-role reps only: logged renewals + auto-collected)
+  const rnMax = Math.max(1, ...renReps.map(n => get(n).ex + get(n).un));
+  document.getElementById('renbars').innerHTML = renReps.sort((a,b)=>(get(b).ex+get(b).un)-(get(a).ex+get(a).un)).map(n => {
+    const r = get(n);
+    return '<div class="bar-row"><div class="bar-name">' + n + '<small>' + roleOf[n] + '</small></div><div class="bar-track">' +
+      '<div class="seg" style="width:' + (r.ex/rnMax*100).toFixed(2) + '%;background:var(--ren)" title="Renewals ' + inr(r.ex) + '"></div>' +
+      '<div class="seg" style="width:' + (r.un/rnMax*100).toFixed(2) + '%;background:var(--unt)" title="Auto-collected ' + inr(r.un) + '"></div>' +
+      '</div><div class="bar-amt">' + inr(r.ex + r.un) + '</div></div>';
   }).join('');
 
-  const act = D.activity.filter(a => a.leads_month || a.demos_month || a.calls_month || a.urgent_tasks);
-  document.getElementById('activity').innerHTML = '<table><tr><th>Rep</th><th class="r">Leads</th><th class="r">Demos</th><th class="r">Demos this wk</th><th class="r">Calls</th><th class="r">Urgent tasks</th></tr>' +
-    act.map(a => '<tr><td class="b">' + a.rep_name + '</td><td class="r">' + a.leads_month + '</td><td class="r">' + a.demos_month + '</td><td class="r">' + a.demos_week + ' <span class="pill ' + (a.demos_week >= Number(meta.demo_target_week) ? 'ok' : 'hi') + '">tgt ' + meta.demo_target_week + '</span></td><td class="r">' + a.calls_month + '</td><td class="r">' + (a.urgent_tasks ? '<span class="pill hi">' + a.urgent_tasks + '</span>' : '0') + '</td></tr>').join('') + '</table>';
+  // target progress per rep (total, vs 4L)
+  const allReps = D.activity.map(a => a.rep_name);
+  document.getElementById('targettbl').innerHTML = '<table><tr><th>Rep</th><th class="r">New</th><th class="r">Renewal</th><th class="r">Total</th><th style="width:30%">Progress to &#8377;4L</th><th class="r">%</th></tr>' +
+    allReps.map(n => {
+      const r = get(n); const tot = r.nb + r.ex + r.un; const pct = Math.min(100, tot / target * 100);
+      return '<tr><td class="b">' + n + ' <span class="pill role">' + roleOf[n] + '</span></td><td class="r">' + inr(r.nb) + '</td><td class="r">' + inr(r.ex + r.un) + '</td><td class="r b">' + inr(tot) + '</td><td><div class="prog"><div style="width:' + pct.toFixed(1) + '%;' + (tot >= target ? '' : 'background:var(--acc)') + '"></div></div></td><td class="r b" style="color:' + (tot >= target ? 'var(--ok)' : 'var(--ink)') + '">' + Math.round(tot / target * 100) + '%</td></tr>';
+    }).join('') + '</table>';
+
+  // activity
+  document.getElementById('activity').innerHTML = '<table><tr><th>Rep</th><th class="r">Leads</th><th class="r">Demos</th><th class="r">Demos wk</th><th class="r">Calls</th><th class="r">Open f/ups</th><th class="r">Urgent</th></tr>' +
+    D.activity.map(a => '<tr><td class="b">' + a.rep_name + '<br><span class="pill role">' + (a.role || '') + '</span></td><td class="r">' + a.leads_month + '</td><td class="r">' + a.demos_month + '</td><td class="r">' + a.demos_week + ' <span class="pill ' + (a.demos_week >= Number(meta.demo_target_week) ? 'ok' : 'hi') + '">tgt ' + meta.demo_target_week + '</span></td><td class="r">' + a.calls_month + '</td><td class="r">' + a.open_tasks + '</td><td class="r">' + (a.urgent_tasks ? '<span class="pill hi">' + a.urgent_tasks + '</span>' : '0') + '</td></tr>').join('') + '</table>';
 
   const fl = Number(meta.funnel_leads), fd = Number(meta.funnel_demo), fw = D.deals.length;
   document.getElementById('funnel').innerHTML =
@@ -176,16 +221,11 @@ function render(D) {
     '<tr><td class="b">Total open pipeline</td><td class="r b" style="color:var(--acc)">' + inr(ptot) + '</td><td colspan="2"></td></tr></table>'
     : '<div class="alert warn"><span>&#9888;&#65039;</span><span>No open deals — pipeline is empty. Deals should be created when a demo is booked, not at payment.</span></div>';
 
-  document.getElementById('foot').textContent = 'Sources: Zoho CRM (deals, leads, meetings, calls, tasks) + Chargebee (paid invoices, source of truth). USD converted at ' + meta.usd_inr_rate + '.';
+  document.getElementById('foot').textContent = 'Sources: Zoho CRM (deals, leads, meetings, calls, tasks) + Chargebee (paid invoices, source of truth). USD converted at ' + meta.usd_inr_rate + '. Roles: Longjam — new + renewal · Subhashree — new business · Rishabh & Prerak — renewals. Auto-collected = Chargebee autopay revenue not yet typed in CRM.';
 }
 
 if (!tok) { gate(); }
-else {
-  fetch(API + '?t=' + encodeURIComponent(tok))
-    .then(r => { if (!r.ok) throw new Error('denied'); return r.json(); })
-    .then(render)
-    .catch(gate);
-}
+else { reload(); }
 </script>
 </body>
 </html>
