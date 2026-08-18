@@ -352,17 +352,29 @@ function render(D) {
     }).join('') + '</table>';
 
   // ---------- team activity: one plain-language card per person, no column-header decoding ----------
+  // demos are split live (not frozen at sync time) into ones whose slot has passed and ones still ahead
+  const nowMs = Date.now();
+  const demosOf = n => (D.demos || []).filter(d => d.owner === n);
+  const heldOf = n => demosOf(n).filter(d => new Date(d.end_dt).getTime() <= nowMs).length;
+  const aheadOf = n => demosOf(n).filter(d => new Date(d.end_dt).getTime() > nowMs).length;
+  const demoOutcome = D.statuses.filter(s => /demo given|demo done/i.test(s.status)).reduce((s, x) => s + Number(x.cnt), 0);
+
+  // renewals-only reps are left out here: they do not chase leads, book demos or make these calls
+  const activeReps = D.activity.filter(a => (a.role || '').includes('New'));
+
   document.getElementById('activity').innerHTML =
     '<div class="note-line" style="margin-top:0;margin-bottom:16px">One card per person. Each number is what they did this month, except the last box, which is just this week. Everyone is expected to run ' +
-    demoTarget + ' demos a week.</div>' +
-    D.activity.slice().sort((a, b) => (b.leads_month + b.demos_month + b.calls_month) - (a.leads_month + a.demos_month + a.calls_month)).map(a => {
+    demoTarget + ' demos a week. Only the people who chase new leads appear here &mdash; the renewals-only reps are shown in the target table above instead.</div>' +
+    activeReps.slice().sort((a, b) => (b.leads_month + b.demos_month + b.calls_month) - (a.leads_month + a.demos_month + a.calls_month)).map(a => {
       const noDemos = !a.demos_month && !a.demos_week;
       const badge = noDemos ? '<span class="badge2 idle">No demos logged this month</span>'
         : a.demos_week >= demoTarget ? '<span class="badge2 good">✓ Met this week&rsquo;s demo target</span>'
         : '<span class="badge2 bad">Short of this week&rsquo;s demo target</span>';
+      const held = heldOf(a.rep_name), ahead = aheadOf(a.rep_name);
       const stats = [
         { v: a.leads_month, l: 'new lead' + s_(a.leads_month) + '<br>they added' },
-        { v: a.demos_month, l: 'demo' + s_(a.demos_month) + '<br>they ran' },
+        { v: held, l: 'demo' + s_(held) + ' already<br>held this month' },
+        { v: ahead, l: 'demo' + s_(ahead) + ' still<br>to come' },
         { v: a.calls_month, l: 'call' + s_(a.calls_month) + '<br>they made' },
         { v: a.demos_week, l: 'demo' + s_(a.demos_week) + ' this week<br>(needs ' + demoTarget + ')' }
       ];
@@ -375,7 +387,11 @@ function render(D) {
       return '<div class="person"><div class="person-top"><div class="person-name">' + a.rep_name + '</div>' + badge + '</div>' +
         '<div class="statrow">' + stats.map(s => '<div class="stat"><div class="sv">' + s.v + '</div><div class="sl">' + s.l + '</div></div>').join('') +
         '</div><div class="person-foot">' + foot + '</div></div>';
-    }).join('');
+    }).join('') +
+    '<div class="note-line"><b>About the demo numbers:</b> &ldquo;already held&rdquo; means the meeting slot has passed, and &ldquo;still to come&rdquo; means it is booked for later. ' +
+    'Zoho has no field for marking a demo as attended or a no-show &mdash; every demo this month is still sitting on its default status &mdash; so nobody can yet tell a demo that ran from one the client skipped. ' +
+    'The closest real outcome we do have: <b>' + demoOutcome + '</b> of this month&rsquo;s leads are marked Demo Given or Demo Done in the CRM. ' +
+    'Adding a &ldquo;Demo outcome&rdquo; field on Meetings would turn this into a true completed-demo count.</div>';
 
   // ---------- lead funnel, rewritten as plain stacked bars ----------
   const fl = Number(meta.funnel_leads) || 0;
