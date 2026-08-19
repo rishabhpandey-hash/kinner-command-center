@@ -112,6 +112,18 @@ tr:last-child td{border-bottom:none}
 .seeall-btn{margin-top:14px;width:100%;padding:12px;border:1px dashed var(--bad);background:#fff5f5;color:#991b1b;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit}
 .seeall-btn:hover{background:#fee2e2}
 .repchip.active{border-color:var(--acc);border-width:2px;box-shadow:0 3px 10px rgba(79,70,229,.18)}
+.filterbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:14px 0 16px;padding:12px 14px;background:#fff;border:1px solid var(--line);border-radius:12px}
+.filterbar .flabel{font-size:11.5px;font-weight:800;color:var(--mut);text-transform:uppercase;letter-spacing:.6px;margin-right:4px}
+.fpill{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:99px;padding:9px 15px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:7px;line-height:1.2}
+.fpill:hover{border-color:var(--acc);color:var(--acc)}
+.fpill.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.fpill .cnt{font-size:11.5px;font-weight:800;background:rgba(17,24,39,.08);padding:1px 8px;border-radius:99px}
+.fpill.on .cnt{background:rgba(255,255,255,.26)}
+@media(max-width:720px){
+  .filterbar{padding:11px 12px;gap:7px}
+  .filterbar .flabel{width:100%;margin-bottom:2px}
+  .fpill{padding:12px 14px;font-size:12.5px;min-height:44px}
+}
 .bands{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:14px}
 .band{background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 12px;text-align:center}
 .band .bn{font-size:19px;font-weight:800;line-height:1.1}
@@ -405,7 +417,7 @@ function ageLabel(hrs) {
 
 let fupFilter = null;
 function setFupFilter(name) {
-  fupFilter = (fupFilter === name) ? null : name;
+  fupFilter = (!name || fupFilter === name) ? null : name;
   renderFollowups();
 }
 
@@ -441,7 +453,15 @@ function renderFollowups() {
       '</span></div>'
     : '<div class="alert ok"><span>&#9989;</span><span><b>Nothing is hanging.</b> Every follow-up has been actioned within ' + ruleDays + ' days.</span></div>';
 
-  uh += '<div class="note-line" style="margin:2px 0 10px"><b>Tap a person to see only their list.</b> Tap them again to go back to everyone.</div>';
+  const roster = D.activity.slice().sort((a, b) => (breachBy[b.rep_name] || 0) - (breachBy[a.rep_name] || 0));
+  uh += '<div class="filterbar"><span class="flabel">Show whose follow-ups</span>' +
+    '<button class="fpill' + (fupFilter ? '' : ' on') + '" onclick="setFupFilter(null)">Everyone' +
+    '<span class="cnt">' + totalBreach + '</span></button>' +
+    roster.map(a => {
+      const n = breachBy[a.rep_name] || 0;
+      return '<button class="fpill' + (fupFilter === a.rep_name ? ' on' : '') + '" onclick="setFupFilter(\'' + js(a.rep_name) + '\')">' +
+        esc(a.rep_name) + '<span class="cnt">' + n + '</span></button>';
+    }).join('') + '</div>';
   uh += '<div class="repchips">' + D.activity.slice()
     .sort((a, b) => (breachBy[b.rep_name] || 0) - (breachBy[a.rep_name] || 0))
     .map(a => {
