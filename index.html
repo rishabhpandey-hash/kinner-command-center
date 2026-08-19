@@ -184,6 +184,10 @@ footer{max-width:1180px;margin:10px auto 0;padding:0 20px;font-size:12px;color:v
 .whoami{display:flex;align-items:center;gap:9px;font-size:12.5px;color:rgba(255,255,255,.92);flex-wrap:wrap}
 .signout{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.32);color:#fff;padding:6px 12px;border-radius:99px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
 .signout:hover{background:rgba(255,255,255,.26)}
+.signout.manage{background:#fff;color:#1e1b4b;border-color:#fff;font-weight:700}
+.signout.manage:hover{background:#eef2ff}
+@keyframes flashcard{0%,100%{box-shadow:0 1px 3px rgba(17,24,39,.05)}30%{box-shadow:0 0 0 4px rgba(79,70,229,.35)}}
+#accesscard.flash{animation:flashcard 1.1s ease-in-out 2}
 .urow{display:flex;align-items:center;gap:12px;padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:#fff;margin-bottom:8px;flex-wrap:wrap}
 .urow .ue{flex:1;min-width:170px;font-size:13.5px;font-weight:600;word-break:break-all}
 .urow .ur{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;padding:3px 9px;border-radius:99px;background:var(--bg);color:var(--mut)}
@@ -244,7 +248,7 @@ th small{text-transform:none;letter-spacing:0;font-weight:500}
   </div>
   <div class="hdr-right">
     <div class="badge">&#10003; Machine-verified against Chargebee</div>
-    <div class="whoami" id="whoami" style="display:none"><span id="whoamiText"></span><button class="signout" id="signout">Sign out</button></div>
+    <div class="whoami" id="whoami" style="display:none"><span id="whoamiText"></span><button class="signout manage" id="manageBtn" style="display:none" onclick="jumpToAccess()">&#128101; Manage access</button><button class="signout" id="signout">Sign out</button></div>
     <button id="refreshBtn" onclick="reload(true)">&#8635; Check for updates</button>
   </div>
 </header>
@@ -345,10 +349,23 @@ async function adminPost(route, body) {
   try { return await r.json(); } catch (e) { return { error: 'server error' }; }
 }
 
+function jumpToAccess() {
+  const card = document.getElementById('accesscard');
+  if (card.style.display === 'none') return;
+  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  card.classList.remove('flash');
+  // restart the highlight so a second click still draws the eye
+  void card.offsetWidth;
+  card.classList.add('flash');
+  setTimeout(function () { card.classList.remove('flash'); }, 2400);
+}
+
 function renderAccess(D) {
   const card = document.getElementById('accesscard');
-  if (!D.me || !D.me.is_admin) { card.style.display = 'none'; return; }
+  const btn = document.getElementById('manageBtn');
+  if (!D.me || !D.me.is_admin) { card.style.display = 'none'; btn.style.display = 'none'; return; }
   card.style.display = 'block';
+  btn.style.display = '';
   const users = D.users || [];
   const iAmMaster = D.me.role === 'master';
   const rows = users.map(function (u) {
