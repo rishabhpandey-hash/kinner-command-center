@@ -112,17 +112,17 @@ tr:last-child td{border-bottom:none}
 .seeall-btn{margin-top:14px;width:100%;padding:12px;border:1px dashed var(--bad);background:#fff5f5;color:#991b1b;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit}
 .seeall-btn:hover{background:#fee2e2}
 .repchip.active{border-color:var(--acc);border-width:2px;box-shadow:0 3px 10px rgba(79,70,229,.18)}
-.filterbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:14px 0 16px;padding:12px 14px;background:#fff;border:1px solid var(--line);border-radius:12px}
-.filterbar .flabel{font-size:11.5px;font-weight:800;color:var(--mut);text-transform:uppercase;letter-spacing:.6px;margin-right:4px}
-.fpill{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:99px;padding:9px 15px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:7px;line-height:1.2}
-.fpill:hover{border-color:var(--acc);color:var(--acc)}
-.fpill.on{background:var(--acc);border-color:var(--acc);color:#fff}
-.fpill .cnt{font-size:11.5px;font-weight:800;background:rgba(17,24,39,.08);padding:1px 8px;border-radius:99px}
-.fpill.on .cnt{background:rgba(255,255,255,.26)}
+.filterbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:14px 0 16px;padding:14px 16px;background:#fff;border:1px solid var(--line);border-radius:12px}
+.filterbar label{font-size:13.5px;font-weight:700;color:var(--ink);white-space:nowrap}
+#fupSelect{flex:1;min-width:230px;padding:11px 38px 11px 14px;font-size:14px;font-family:inherit;font-weight:600;color:var(--ink);background:#fff;border:2px solid var(--acc);border-radius:10px;cursor:pointer;min-height:46px;-webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234f46e5' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;background-size:16px}
+#fupSelect:focus{outline:none;box-shadow:0 0 0 3px rgba(79,70,229,.2)}
+.filterbar .clearf{background:none;border:none;color:var(--acc);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;text-decoration:underline;padding:0}
 @media(max-width:720px){
-  .filterbar{padding:11px 12px;gap:7px}
-  .filterbar .flabel{width:100%;margin-bottom:2px}
-  .fpill{padding:12px 14px;font-size:12.5px;min-height:44px}
+  .filterbar{padding:12px;gap:8px}
+  .filterbar label{width:100%}
+  #fupSelect{width:100%;flex:none;min-width:0}
 }
 .bands{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:14px}
 .band{background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 12px;text-align:center}
@@ -454,26 +454,26 @@ function renderFollowups() {
     : '<div class="alert ok"><span>&#9989;</span><span><b>Nothing is hanging.</b> Every follow-up has been actioned within ' + ruleDays + ' days.</span></div>';
 
   const roster = D.activity.slice().sort((a, b) => (breachBy[b.rep_name] || 0) - (breachBy[a.rep_name] || 0));
-  uh += '<div class="filterbar"><span class="flabel">Show whose follow-ups</span>' +
-    '<button class="fpill' + (fupFilter ? '' : ' on') + '" onclick="setFupFilter(null)">Everyone' +
-    '<span class="cnt">' + totalBreach + '</span></button>' +
+  uh += '<div class="filterbar"><label for="fupSelect">Show follow-ups for:</label>' +
+    '<select id="fupSelect" onchange="setFupFilter(this.value)">' +
+    '<option value=""' + (fupFilter ? '' : ' selected') + '>Everyone &mdash; ' + totalBreach + ' waiting</option>' +
     roster.map(a => {
       const n = breachBy[a.rep_name] || 0;
-      return '<button class="fpill' + (fupFilter === a.rep_name ? ' on' : '') + '" onclick="setFupFilter(\'' + js(a.rep_name) + '\')">' +
-        esc(a.rep_name) + '<span class="cnt">' + n + '</span></button>';
-    }).join('') + '</div>';
+      return '<option value="' + esc(a.rep_name) + '"' + (fupFilter === a.rep_name ? ' selected' : '') + '>' +
+        esc(a.rep_name) + ' &mdash; ' + n + ' waiting</option>';
+    }).join('') + '</select>' +
+    (fupFilter ? '<button class="clearf" onclick="setFupFilter(\'\')">Show everyone again</button>' : '') +
+    '</div>';
   uh += '<div class="repchips">' + D.activity.slice()
     .sort((a, b) => (breachBy[b.rep_name] || 0) - (breachBy[a.rep_name] || 0))
     .map(a => {
       const n = breachBy[a.rep_name] || 0;
       const active = fupFilter === a.rep_name;
       const dim = fupFilter && !active;
-      return '<div class="repchip clickable ' + (n ? 'bad' : 'good') + (active ? ' active' : '') + '"' +
-        (dim ? ' style="opacity:.45"' : '') +
-        ' onclick="setFupFilter(\'' + js(a.rep_name) + '\')" title="' + (active ? 'Tap to show everyone again' : 'Tap to show only ' + esc(a.rep_name)) + '">' +
+      return '<div class="repchip ' + (n ? 'bad' : 'good') + (active ? ' active' : '') + '"' +
+        (dim ? ' style="opacity:.4"' : '') + '>' +
         '<div class="n">' + n + '</div><div class="who">' + esc(a.rep_name) + '</div>' +
         '<div class="sub">' + (n ? 'waiting longer than ' + ruleDays + ' days<br>oldest has waited <b>' + oldestBy[a.rep_name] + ' days</b>' : 'nothing left hanging') +
-        (active ? '<br><span style="color:var(--acc);font-weight:700">&#10003; showing only this list</span>' : '') +
         '</div></div>';
     }).join('') + '</div>';
 
