@@ -99,6 +99,27 @@ tr:last-child td{border-bottom:none}
 .pill.hi{background:#fee2e2;color:#991b1b}
 .pill.ok{background:#dcfce7;color:#166534}
 .totalrow td{border-top:2px solid var(--line);background:var(--bg)}
+.worst{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.worstrow{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);border-left:4px solid var(--bad);border-radius:10px;padding:11px 14px}
+.worstrow .wdays{flex:0 0 76px;text-align:right;font-size:20px;font-weight:800;color:var(--bad);line-height:1.1}
+.worstrow .wdays small{display:block;font-size:10px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.4px}
+.worstrow .wwho{flex:1;min-width:0}
+.worstrow .wname{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.worstrow .wname a{color:var(--ink);text-decoration:none;border-bottom:1px dotted var(--mut)}
+.worstrow .wname a:hover{color:var(--acc);border-color:var(--acc)}
+.worstrow .wtask{font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.worstrow .wmeta{flex:0 0 auto;text-align:right;font-size:11.5px;color:var(--mut)}
+.seeall-btn{margin-top:14px;width:100%;padding:12px;border:1px dashed var(--bad);background:#fff5f5;color:#991b1b;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit}
+.seeall-btn:hover{background:#fee2e2}
+.bands{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:14px}
+.band{background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 12px;text-align:center}
+.band .bn{font-size:19px;font-weight:800;line-height:1.1}
+.band .bl{font-size:11px;color:var(--mut);margin-top:3px;line-height:1.35}
+@media(max-width:720px){
+  .worstrow{gap:10px;padding:10px 12px}
+  .worstrow .wdays{flex:0 0 60px;font-size:17px}
+  .worstrow .wmeta{display:none}
+}
 .drill{position:fixed;inset:0;background:rgba(17,24,39,.55);z-index:200;display:flex;align-items:flex-start;justify-content:center;padding:24px 14px;overflow-y:auto}
 .drill-box{background:var(--card);border-radius:14px;max-width:860px;width:100%;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.3);margin:auto}
 .drill-top{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:16px}
@@ -129,7 +150,8 @@ footer{max-width:1180px;margin:10px auto 0;padding:0 20px;font-size:12px;color:v
 .repchip .who{font-size:13px;font-weight:700;margin-top:2px}
 .repchip .sub{font-size:11.5px;color:var(--mut);margin-top:2px}
 .repchip.bad{border-color:#fca5a5;background:#fff5f5}.repchip.bad .n{color:#991b1b}
-.repchip.good{border-color:#a7f3d0;background:#f0fdf9}.repchip.good .n{color:#166534}
+.repchip.good{border-color:#d1fae5;background:#f8fffd}.repchip.good .n{color:#059669;opacity:.75}
+.repchips{align-items:stretch}
 .fbar{display:flex;align-items:center;gap:14px;margin-bottom:12px}
 .fbar .fnum{width:58px;font-size:23px;font-weight:800;text-align:right;flex-shrink:0}
 .fbar .fmid{flex:1;min-width:0}
@@ -171,10 +193,10 @@ th small{text-transform:none;letter-spacing:0;font-weight:500}
   <div class="fresh" id="freshness"></div>
   <div class="tiles" id="tiles"></div>
   <div class="card" id="recon"></div>
-  <div class="card danger"><h2>&#128293; Follow-ups people have left hanging <span class="tag">our rule: nothing waits more than 5 days</span></h2><div id="urgentbox"></div></div>
+  <div class="card danger"><h2><span>&#128293;</span>Follow-ups people have left hanging <span class="tag">our rule: nothing waits more than 5 days</span></h2><div id="urgentbox"></div></div>
   <div class="grid2">
-    <div class="card"><h2>&#127919; New business revenue <span class="tag">money from brand-new customers</span></h2><div id="newbars"></div></div>
-    <div class="card"><h2>&#128260; Renewal revenue <span class="tag">money from existing customers</span></h2><div id="renbars"></div><div class="legend"><span><span class="dot" style="background:var(--ren)"></span>Renewal logged by the rep</span><span><span class="dot" style="background:var(--unt)"></span>Collected automatically (Chargebee autopay)</span></div></div>
+    <div class="card"><h2><span>&#127919;</span>New business revenue <span class="tag">money from brand-new customers</span></h2><div id="newbars"></div></div>
+    <div class="card"><h2><span>&#128260;</span>Renewal revenue <span class="tag">money from existing customers</span></h2><div id="renbars"></div><div class="legend"><span><span class="dot" style="background:var(--ren)"></span>Renewal logged by the rep</span><span><span class="dot" style="background:var(--unt)"></span>Collected automatically (Chargebee autopay)</span></div></div>
   </div>
   <div class="card"><h2>Progress against each person&rsquo;s monthly target <span class="tag">new + renewal added together</span></h2><div id="targettbl"></div></div>
   <div class="card"><h2>What each person has done this month <span class="tag">team activity</span></h2><div id="activity"></div></div>
@@ -234,6 +256,17 @@ function closeDrill() {
 }
 document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrill(); });
 
+function drillFollowups() {
+  const zoho = id => 'https://crm.zoho.in/crm/org60035754313/tab/Leads/' + encodeURIComponent(id);
+  const rows = (LAST.followups || []).slice().sort((a, b) => b.days_open - a.days_open).map(f => [
+    '<b>' + (f.client_zoho_id ? '<a href="' + zoho(f.client_zoho_id) + '" target="_blank" rel="noopener">' + esc(f.client_name) + '</a>' : esc(f.client_name)) + '</b>',
+    esc(f.subject), esc(f.owner),
+    '<b style="color:var(--bad)">' + f.days_open + ' days</b>',
+    (f.due_date ? esc(f.due_date) : 'none set')
+  ]);
+  openDrill('Every follow-up left hanging', rows.length + ' shown, longest wait first — click a client to open them in Zoho',
+    ['Client', 'What was promised', 'Owner', 'Waiting', 'Due date they set'], rows);
+}
 function drillJunk() {
   const rows = (LAST.leads || []).filter(l => l.is_junk)
     .sort((a, b) => String(a.junk_reason || '').localeCompare(String(b.junk_reason || '')))
@@ -476,7 +509,7 @@ function render(D) {
     ? '<div class="alert warn"><span>&#9888;&#65039;</span><span><b>' + totalBreach + ' follow-ups have been sitting for more than ' +
       ruleDays + ' days</b>' + (totalOpen ? ' out of ' + totalOpen + ' open in total' : '') +
       '. Each one is a client who was promised something and has not heard back.' +
-      (pushedOut ? ' <b>' + pushedOut + ' of the ones below have had their due date pushed into the future</b>, so they never showed up as overdue in Zoho.' : '') +
+      (pushedOut ? ' <b>' + pushedOut + ' of them have had their due date pushed into the future</b>, so they never showed up as overdue in Zoho.' : '') +
       '</span></div>'
     : '<div class="alert ok"><span>&#9989;</span><span><b>Nothing is hanging.</b> Every follow-up has been actioned within ' + ruleDays + ' days.</span></div>';
 
@@ -491,21 +524,31 @@ function render(D) {
 
   if (fups.length) {
     const zoho = id => 'https://crm.zoho.in/crm/org60035754313/tab/Leads/' + encodeURIComponent(id);
-    uh += '<table><tr class="hdr"><th>Client left waiting</th><th>What was promised</th><th>Owner</th><th class="r">Waiting</th><th>Due date they set</th></tr>' +
-      fups.map(f => {
-        const d = Number(f.days_open);
-        const band = d > 180 ? 'background:#fee2e2;color:#991b1b' : d > 30 ? 'background:#ffedd5;color:#9a3412' : 'background:#fef9c3;color:#854d0e';
-        const future = f.due_date && daysLate(f.due_date) < 0;
-        return '<tr><td data-label="Client left waiting" class="b">' +
-          (f.client_zoho_id ? '<a href="' + zoho(f.client_zoho_id) + '" target="_blank" rel="noopener">' + esc(f.client_name) + '</a>' : esc(f.client_name)) +
-          '</td><td data-label="What was promised">' + esc(f.subject) + '</td><td data-label="Owner">' + esc(f.owner) +
-          '</td><td data-label="Waiting" class="r"><span class="pill" style="' + band + '">' + d + ' days</span></td>' +
-          '<td data-label="Due date they set">' + (f.due_date ? esc(f.due_date) : 'none set') +
-          (future ? ' <span class="pill hi">pushed forward</span>' : '') + '</td></tr>';
-      }).join('') + '</table>' +
-      '<div class="note-line">Sorted by how long the client has been waiting, worst first' +
-      (totalBreach > fups.length ? '. Showing the ' + fups.length + ' oldest of ' + totalBreach : '') +
-      '. Click a client name to open their record in Zoho. <b>&ldquo;Waiting&rdquo; is counted from the day the follow-up was created</b>, not from the due date &mdash; the due date can be moved, the client&rsquo;s wait cannot.</div>';
+
+    // the five worst are the point of the section: name them, big and unmissable
+    uh += '<h2 style="margin:18px 0 10px">Clients waiting the longest</h2><div class="worst">' +
+      fups.slice(0, 5).map(f =>
+        '<div class="worstrow"><div class="wdays">' + f.days_open + '<small>days</small></div>' +
+        '<div class="wwho"><div class="wname">' +
+        (f.client_zoho_id ? '<a href="' + zoho(f.client_zoho_id) + '" target="_blank" rel="noopener">' + esc(f.client_name) + '</a>' : esc(f.client_name)) +
+        '</div><div class="wtask">' + esc(f.subject) + ' &middot; ' + esc(f.owner) + '</div></div>' +
+        '<div class="wmeta">due date set<br><b>' + (f.due_date ? esc(f.due_date) : 'none') + '</b></div></div>').join('') +
+      '</div>';
+
+    // severity at a glance, so a 12-day nurture step is never confused with a two-year silence
+    const bands = [
+      { n: fups.filter(f => f.days_open > 365).length, l: 'over a year', c: '#991b1b' },
+      { n: fups.filter(f => f.days_open > 180 && f.days_open <= 365).length, l: '6&ndash;12 months', c: '#b91c1c' },
+      { n: fups.filter(f => f.days_open > 30 && f.days_open <= 180).length, l: '1&ndash;6 months', c: '#c2410c' },
+      { n: fups.filter(f => f.days_open <= 30).length, l: 'under a month', c: '#a16207' }
+    ];
+    uh += '<div class="bands">' + bands.map(b =>
+      '<div class="band"><div class="bn" style="color:' + b.c + '">' + b.n + '</div><div class="bl">' + b.l + '</div></div>').join('') + '</div>';
+
+    uh += '<button class="seeall-btn" onclick="drillFollowups()">See all ' + fups.length + ' &mdash; longest wait first &rarr;</button>' +
+      '<div class="note-line">Bands cover the ' + fups.length + ' oldest' +
+      (totalBreach > fups.length ? ' of ' + totalBreach : '') +
+      '. <b>&ldquo;Waiting&rdquo; is counted from the day the follow-up was created</b>, not the due date &mdash; the due date can be moved, the client&rsquo;s wait cannot.</div>';
   }
   document.getElementById('urgentbox').innerHTML = uh;
 
