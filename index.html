@@ -157,6 +157,45 @@ footer{max-width:1180px;margin:10px auto 0;padding:0 20px;font-size:12px;color:v
 .gate{max-width:460px;margin:80px auto;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:36px;text-align:center}
 .gate h2{margin-bottom:10px}
 .gate p{color:var(--mut);font-size:14px}
+#pet{position:fixed;z-index:150;width:58px;height:58px;cursor:pointer;transition:left 4s ease-in-out,top 4s ease-in-out;display:none}
+#pet svg{width:100%;height:100%;filter:drop-shadow(0 5px 10px rgba(17,24,39,.2))}
+#pet.hop svg{animation:pethop .55s ease-in-out infinite}
+@keyframes pethop{0%,100%{transform:translateY(0) rotate(0)}30%{transform:translateY(-5px) rotate(-4deg)}60%{transform:translateY(0) rotate(3deg)}}
+#petBubble{position:fixed;z-index:151;max-width:224px;background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:12px 30px 12px 14px;font-size:12.5px;line-height:1.5;color:var(--ink);box-shadow:0 10px 26px rgba(17,24,39,.16);opacity:0;transform:translateY(8px) scale(.95);transition:opacity .35s,transform .35s;display:none}
+#petBubble.show{opacity:1;transform:translateY(0) scale(1)}
+#petBubble b{color:var(--acc)}
+#petBubble:before,#petBubble:after{content:'';position:absolute;background:#fff;border:1.5px solid var(--line);border-radius:50%}
+#petBubble:before{width:11px;height:11px;bottom:-16px;left:18px}
+#petBubble:after{width:6px;height:6px;bottom:-26px;left:14px}
+#petOff{position:absolute;top:5px;right:6px;width:20px;height:20px;border:none;background:none;color:var(--mut);font-size:15px;line-height:1;cursor:pointer;font-family:inherit;border-radius:50%}
+#petOff:hover{background:var(--bg);color:var(--ink)}
+@media(max-width:720px){#pet{width:46px;height:46px}#petBubble{max-width:180px;font-size:12px}}
+@media(prefers-reduced-motion:reduce){#pet{transition:none}#pet.hop svg{animation:none}}
+.loginbox{max-width:430px;margin:70px auto;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:34px 30px;box-shadow:0 8px 30px rgba(17,24,39,.08)}
+.loginbox h2{font-size:19px;margin-bottom:8px}
+.loginbox p{color:var(--mut);font-size:13.5px;line-height:1.55}
+.loginbox input{width:100%;margin-top:14px;padding:13px 14px;border:1px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit}
+.loginbox input:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(79,70,229,.15)}
+.loginbox button{width:100%;margin-top:11px;padding:13px;border:none;border-radius:10px;background:var(--acc);color:#fff;font-size:14.5px;font-weight:700;cursor:pointer;font-family:inherit}
+.loginbox button:disabled{opacity:.6;cursor:wait}
+.msg{margin-top:14px;font-size:13px;line-height:1.5;min-height:18px}
+.msg.err{color:var(--bad)}.msg.info{color:var(--acc)}
+#codeRow{display:none}
+.whoami{display:flex;align-items:center;gap:9px;font-size:12.5px;color:rgba(255,255,255,.92);flex-wrap:wrap}
+.signout{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.32);color:#fff;padding:6px 12px;border-radius:99px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.signout:hover{background:rgba(255,255,255,.26)}
+.urow{display:flex;align-items:center;gap:12px;padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:#fff;margin-bottom:8px;flex-wrap:wrap}
+.urow .ue{flex:1;min-width:170px;font-size:13.5px;font-weight:600;word-break:break-all}
+.urow .ur{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;padding:3px 9px;border-radius:99px;background:var(--bg);color:var(--mut)}
+.urow .ur.master{background:#ede9fe;color:#5b21b6}
+.urow .ur.admin{background:#dbeafe;color:#1e40af}
+.urow .rm{background:none;border:1px solid #fca5a5;color:#991b1b;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+.urow .rm:hover{background:#fee2e2}
+.addrow{display:flex;gap:9px;margin-top:14px;flex-wrap:wrap}
+.addrow input{flex:1;min-width:190px;padding:11px 13px;border:1px solid var(--line);border-radius:10px;font-size:14px;font-family:inherit}
+.addrow select{padding:11px 13px;border:1px solid var(--line);border-radius:10px;font-size:14px;font-family:inherit;background:#fff}
+.addrow button{padding:11px 20px;border:none;border-radius:10px;background:var(--acc);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+@media(max-width:720px){.loginbox{margin:26px auto;padding:24px 18px}.addrow input,.addrow select,.addrow button{width:100%;flex:none;min-width:0}}
 .gate button{width:100%;margin-top:10px;padding:12px;border:none;border-radius:10px;background:var(--acc);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
 .gate button:hover{opacity:.92}
 .fresh{background:#eef2ff;border:1px solid #c7d2fe;color:#3730a3;border-radius:12px;padding:12px 18px;font-size:13.5px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;line-height:1.5}
@@ -205,6 +244,7 @@ th small{text-transform:none;letter-spacing:0;font-weight:500}
   </div>
   <div class="hdr-right">
     <div class="badge">&#10003; Machine-verified against Chargebee</div>
+    <div class="whoami" id="whoami" style="display:none"><span id="whoamiText"></span><button class="signout" id="signout">Sign out</button></div>
     <button id="refreshBtn" onclick="reload(true)">&#8635; Check for updates</button>
   </div>
 </header>
@@ -220,9 +260,37 @@ th small{text-transform:none;letter-spacing:0;font-weight:500}
   <div class="card"><h2>Progress against each person&rsquo;s monthly target <span class="tag">new + renewal added together</span></h2><div id="targettbl"></div></div>
   <div class="card"><h2>What each person has done this month <span class="tag">team activity</span></h2><div id="activity"></div></div>
   <div class="card"><h2>What happened to this month&rsquo;s new leads <span class="tag">this month</span></h2><div id="funnel"></div><div style="margin-top:18px"><h2 style="margin-bottom:10px">Where those leads stand now</h2><div class="chips" id="statuschips"></div></div></div>
+  <div class="card" id="accesscard" style="display:none"><h2><span>&#128274;</span>Who can see this dashboard <span class="tag">admins only</span></h2><div id="accessbox"></div></div>
   <div class="card"><h2><span>&#128197;</span>Renewals coming next month <span class="tag">from Chargebee &mdash; who has to save them</span></h2><div id="renewbox"></div></div>
   <div class="card"><h2>Open pipeline <span class="tag">money in play</span></h2><div id="pipebox"></div></div>
 </main>
+<div id="pet" title="Click me"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <ellipse cx="32" cy="57" rx="15" ry="3.5" fill="rgba(17,24,39,.13)"/>
+  <path d="M15 26c-1-7 0-12 2-13s6 2 8 5z" fill="#f6a04d"/><path d="M49 26c1-7 0-12-2-13s-6 2-8 5z" fill="#f6a04d"/>
+  <path d="M17.5 24.5c-.5-4 .2-7 1.2-7.6s3.4 1.2 4.8 3.3z" fill="#ffd0b0"/><path d="M46.5 24.5c.5-4-.2-7-1.2-7.6s-3.4 1.2-4.8 3.3z" fill="#ffd0b0"/>
+  <path d="M50 44c6-3 9-9 8-13-1-3-4-3-6 0" fill="none" stroke="#f6a04d" stroke-width="5" stroke-linecap="round"/>
+  <ellipse cx="32" cy="34" rx="21" ry="20" fill="#fbb96a"/>
+  <ellipse cx="32" cy="40" rx="12" ry="10" fill="#fff3e4"/>
+  <circle cx="24" cy="31" r="3.6" fill="#3b2b20"/><circle cx="40" cy="31" r="3.6" fill="#3b2b20"/>
+  <circle cx="25.2" cy="29.8" r="1.3" fill="#fff"/><circle cx="41.2" cy="29.8" r="1.3" fill="#fff"/>
+  <path d="M30 37.5h4l-2 2z" fill="#e06f6f"/>
+  <path d="M28 41c1.6 1.6 6.4 1.6 8 0" fill="none" stroke="#3b2b20" stroke-width="1.6" stroke-linecap="round"/>
+  <circle cx="17" cy="37" r="3" fill="#ffb3b3" opacity=".55"/><circle cx="47" cy="37" r="3" fill="#ffb3b3" opacity=".55"/>
+  <g stroke="#3b2b20" stroke-width="1.1" stroke-linecap="round" opacity=".65">
+    <path d="M12 34h-6M12 37.5l-5.5 2M52 34h6M52 37.5l5.5 2"/></g>
+</svg></div>
+<div id="petBubble"><button id="petOff" title="Hide the cat">&times;</button><span id="petText"></span></div>
+<div class="loginbox" id="login" style="display:none">
+  <h2>Knorish Sales Command Center</h2>
+  <p>This dashboard is restricted to the sales team. Enter your work email and we will send you a 6-digit code.</p>
+  <input id="loginEmail" type="email" placeholder="you@knorish.com" autocomplete="email">
+  <button id="sendCode">Email me a code</button>
+  <div id="codeRow">
+    <input id="loginCode" type="text" inputmode="numeric" placeholder="6-digit code" autocomplete="one-time-code">
+    <button id="verifyCode">Sign in</button>
+  </div>
+  <div class="msg" id="loginMsg"></div>
+</div>
 <div class="drill" id="drill" style="display:none" onclick="if(event.target===this)closeDrill()">
   <div class="drill-box">
     <div class="drill-top">
@@ -241,9 +309,90 @@ th small{text-transform:none;letter-spacing:0;font-weight:500}
 <footer id="foot"></footer>
 <script>
 const API = 'https://mgnjlymtjmcoskqinhid.supabase.co/functions/v1/kinner-data';
-// Open dashboard, no access code (internal decision, 2026-08-18): anyone with the link
-// can read it. Any leftover ?t=... from an old bookmark is stripped so the URL stays clean.
+// LOCKED 2026-08-19 on Kinner's instruction. Access = Supabase Auth email OTP plus the
+// kcc_users allowlist, the same model the client inbox uses. Signing in is NOT access:
+// the address must be on the list, checked server-side on every request.
 function cleanUrl() { try { if (location.search) history.replaceState(null, '', location.pathname + location.hash); } catch (e) {} }
+
+function showLogin(msg, kind) {
+  document.getElementById('main').style.display = 'none';
+  document.getElementById('loaderr').style.display = 'none';
+  document.getElementById('whoami').style.display = 'none';
+  document.getElementById('refreshBtn').style.display = 'none';
+  document.getElementById('login').style.display = 'block';
+  document.getElementById('subtitle').textContent = 'sign in to continue';
+  if (msg) {
+    const el = document.getElementById('loginMsg');
+    el.className = 'msg ' + (kind || 'err');
+    el.textContent = msg;
+  }
+}
+
+function authToken() {
+  return window.sb.auth.getSession().then(function (s) {
+    return (s && s.data && s.data.session) ? s.data.session.access_token : null;
+  });
+}
+
+async function adminPost(route, body) {
+  const t = await authToken();
+  if (!t) { showLogin('Your session expired. Please sign in again.'); return { error: 'signed out' }; }
+  const r = await fetch(API + route, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  try { return await r.json(); } catch (e) { return { error: 'server error' }; }
+}
+
+function renderAccess(D) {
+  const card = document.getElementById('accesscard');
+  if (!D.me || !D.me.is_admin) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  const users = D.users || [];
+  const iAmMaster = D.me.role === 'master';
+  const rows = users.map(function (u) {
+    const role = String(u.role || 'viewer');
+    const locked = role === 'master' || (role === 'admin' && !iAmMaster) || u.email === D.me.email;
+    return '<div class="urow"><span class="ue">' + esc(u.email) + '</span>' +
+      '<span class="ur ' + esc(role) + '">' + esc(role) + '</span>' +
+      (u.label ? '<span style="font-size:12px;color:var(--mut)">' + esc(u.label) + '</span>' : '') +
+      (locked
+        ? '<span style="font-size:11.5px;color:var(--mut)">' + (u.email === D.me.email ? 'that\u2019s you' : 'protected') + '</span>'
+        : '<button class="rm" onclick="removeUser(\'' + js(u.email) + '\')">Remove</button>') +
+      '</div>';
+  }).join('');
+  document.getElementById('accessbox').innerHTML =
+    '<div class="note-line" style="margin-top:0;margin-bottom:14px">Only these ' + users.length +
+    ' people can open this dashboard. Add someone and they sign in with their own email \u2014 there is no shared password to pass around.</div>' +
+    rows +
+    '<div class="addrow"><input id="newEmail" type="email" placeholder="name@knorish.com" autocomplete="off">' +
+    '<select id="newRole"><option value="viewer">Can view</option>' +
+    (iAmMaster ? '<option value="admin">Can view + manage people</option>' : '') +
+    '</select><button onclick="addUser()">Add person</button></div>' +
+    '<div class="msg" id="accessMsg"></div>';
+}
+
+async function addUser() {
+  const email = document.getElementById('newEmail').value.trim().toLowerCase();
+  const role = document.getElementById('newRole').value;
+  const msg = document.getElementById('accessMsg');
+  if (!email || email.indexOf('@') < 0) { msg.className = 'msg err'; msg.textContent = 'Enter a valid email address.'; return; }
+  msg.className = 'msg info'; msg.textContent = 'Adding\u2026';
+  const res = await adminPost('/users/add', { email: email, role: role });
+  if (res.error) { msg.className = 'msg err'; msg.textContent = res.error; return; }
+  msg.className = 'msg info';
+  msg.textContent = email + ' can now open the dashboard. Send them the link \u2014 they sign in with their own email.';
+  document.getElementById('newEmail').value = '';
+  reload(false);
+}
+
+async function removeUser(email) {
+  if (!confirm('Remove ' + email + '? They will lose access immediately.')) return;
+  const res = await adminPost('/users/remove', { email: email });
+  if (res.error) { alert(res.error); return; }
+  reload(false);
+}
 
 let everRendered = false;
 let LAST = null;   // last rendered payload, so drill-downs can read it
@@ -453,12 +602,20 @@ function reload(manual) {
     }, Math.max(0, 500 - (Date.now() - started)));
   };
 
-  fetch(API, { cache: 'no-store' })
+  authToken()
+    .then(function (token) {
+      if (!token) { finish(function () { showLogin(); }); return null; }
+      return fetch(API, { cache: 'no-store', headers: { Authorization: 'Bearer ' + token } });
+    })
     .then(function (r) {
+      if (!r) return null;
+      if (r.status === 401) { const e = new Error('session expired'); e.signedOut = true; throw e; }
+      if (r.status === 403) { const e = new Error('not on the list'); e.notAllowed = true; throw e; }
       if (!r.ok) throw new Error('http ' + r.status);
       return r.json();
     })
     .then(function (D) {
+      if (!D) return;
       render(D);
       everRendered = true;
       document.getElementById('loaderr').style.display = 'none';
@@ -472,6 +629,14 @@ function reload(manual) {
       });
     })
     .catch(function (err) {
+      if (err && err.signedOut) { finish(function () { showLogin('Your session expired. Please sign in again.'); }); return; }
+      if (err && err.notAllowed) {
+        finish(function () {
+          try { window.sb.auth.signOut(); } catch (e) {}
+          showLogin('That email is not on the access list. Ask Rishabh or Kinner to add you.');
+        });
+        return;
+      }
       // a network blip must never wipe the figures already on screen
       finish(function () {
         if (everRendered) { toast('Could not reach the server \u2014 showing last loaded figures', 'warn'); }
@@ -600,6 +765,14 @@ function render(D) {
   LAST = D;
   document.getElementById('main').style.display = 'flex';
   document.getElementById('loaderr').style.display = 'none';
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('refreshBtn').style.display = '';
+  if (D.me) {
+    document.getElementById('whoami').style.display = 'flex';
+    document.getElementById('whoamiText').textContent = D.me.email + (D.me.is_admin ? ' \u00b7 admin' : '');
+  }
+  renderAccess(D);
+  if (!window.__petOn) { window.__petOn = true; setTimeout(petStart, 1200); }
   document.getElementById('subtitle').textContent = meta.month + ' · Knorish sales';
 
   // ---------- how fresh is this data ----------
@@ -858,9 +1031,193 @@ function render(D) {
   document.getElementById('foot').innerHTML = 'Sources: Zoho CRM (deals, leads, meetings, calls, tasks) + Chargebee (paid invoices, treated as the source of truth). USD converted at ' + meta.usd_inr_rate + '. Figures refresh automatically every day at 08:04 IST; “Check for updates” reloads the latest refreshed figures. “Collected automatically” is Chargebee autopay revenue that has not been typed as New or Renewal in the CRM.';
 }
 
-(function boot() {
-  cleanUrl();   // tidy away ?t=... left over in an old bookmark
-  reload(false);
+/* ---------- Mochi: a small mascot that wanders and nudges with real numbers ---------- */
+const PET_OFF_KEY = 'kcc_pet_off';
+let petTimer = null, petBubbleTimer = null, petStops = 0;
+
+function petLines() {
+  const generic = [
+    'Every rupee starts with a conversation.',
+    'The follow-up <b>is</b> the sale.',
+    'A demo given beats ten demos booked.',
+    'Renewals are earned long before they fall due.',
+    'Small nudges, big months.',
+    'One more call than yesterday.',
+    'You are closer than the numbers feel.'
+  ];
+  const lines = [];
+  try {
+    const D = LAST;
+    if (D) {
+      const fups = (D.followups || []);
+      const overYear = fups.filter(f => Number(f.days_open) > 365).length;
+      if (overYear) lines.push('<b>' + overYear + ' clients</b> have waited over a year. One call changes that.');
+      const worst = fups.slice().sort((a, b) => b.days_open - a.days_open)[0];
+      if (worst) lines.push('<b>' + esc(worst.client_name) + '</b> has waited ' + worst.days_open + ' days. Today?');
+      const rens = (D.renewals || []);
+      if (rens.length) {
+        const amt = rens.reduce((s, r) => s + Number(r.inr_value), 0);
+        lines.push('<b>' + money(amt) + '</b> of renewals next month. Protect it.');
+        const soon = rens.filter(r => new Date(r.next_billing_on + 'T00:00:00').getDate() <= 10).length;
+        if (soon) lines.push('<b>' + soon + ' renewals</b> land in the first 10 days. Get ahead of them.');
+      }
+      const given = (D.demos || []).filter(d => d.lead_modified && new Date(d.lead_modified) >= new Date(d.start_dt)).length;
+      if (given) lines.push('<b>' + given + ' demos</b> actually delivered this month. That is real work.');
+      const crm = (D.deals || []).reduce((s, d) => s + Number(d.amount), 0);
+      const tgt = (D.reps || []).reduce((s, r) => s + Number(r.revenue_target || 0), 0);
+      if (tgt) {
+        const pct = Math.round(crm / tgt * 100);
+        lines.push(pct >= 100 ? 'Target beaten \u2014 <b>' + pct + '%</b>. Take the win.' : '<b>' + pct + '%</b> of target. Every deal moves it.');
+      }
+      const unmatched = (D.invoices || []).filter(i => !i.matched_deal).length;
+      if (unmatched) lines.push('<b>' + unmatched + '</b> payment not in the CRM yet \u2014 a two-minute win.');
+    }
+  } catch (e) { /* fall back to the generic lines */ }
+  return lines.length ? lines.concat(generic) : generic;
+}
+
+function petMove() {
+  const pet = document.getElementById('pet');
+  const w = Math.max(320, window.innerWidth), hh = Math.max(320, window.innerHeight);
+  const size = w < 720 ? 46 : 58;
+  // Walk the outer thirds by preference so the cat sits in the margins beside the
+  // content column rather than strolling over the middle of a card, and stay well
+  // below the header.
+  const band = Math.max(60, (w - size - 28) * 0.3);
+  const left = Math.random() < 0.5
+    ? Math.round(14 + Math.random() * band)
+    : Math.round(w - size - 14 - Math.random() * band);
+  const top = Math.round(hh * 0.5 + Math.random() * (hh * 0.38));
+  pet.style.left = left + 'px';
+  pet.style.top = Math.min(top, hh - size - 14) + 'px';
+  pet.classList.add('hop');
+  setTimeout(() => pet.classList.remove('hop'), 4000);
+  petStops++;
+  if (petStops % 2 === 0) setTimeout(petSpeak, 4200);
+}
+
+function petSpeak(forced) {
+  const pet = document.getElementById('pet');
+  const bub = document.getElementById('petBubble');
+  if (pet.style.display === 'none') return;
+  const lines = petLines();
+  document.getElementById('petText').innerHTML = lines[Math.floor(Math.random() * lines.length)];
+  const r = pet.getBoundingClientRect();
+  bub.style.display = 'block';
+  const bw = Math.min(224, window.innerWidth - 28);
+  bub.style.left = Math.max(12, Math.min(r.left - 8, window.innerWidth - bw - 12)) + 'px';
+  bub.style.top = Math.max(10, r.top - bub.offsetHeight - 22) + 'px';
+  requestAnimationFrame(() => bub.classList.add('show'));
+  clearTimeout(petBubbleTimer);
+  petBubbleTimer = setTimeout(petHush, forced ? 8000 : 6500);
+}
+
+function petHush() {
+  const bub = document.getElementById('petBubble');
+  bub.classList.remove('show');
+  setTimeout(() => { bub.style.display = 'none'; }, 400);
+}
+
+function petStart() {
+  let off = false;
+  try { off = localStorage.getItem(PET_OFF_KEY) === '1'; } catch (e) {}
+  if (off) return;
+  const pet = document.getElementById('pet');
+  pet.style.display = 'block';
+  pet.style.left = '30px';
+  pet.style.top = (window.innerHeight - 120) + 'px';
+  pet.onclick = function () { petSpeak(true); };
+  document.getElementById('petOff').onclick = function (e) {
+    e.stopPropagation();
+    petHush(); pet.style.display = 'none';
+    clearInterval(petTimer);
+    try { localStorage.setItem(PET_OFF_KEY, '1'); } catch (e2) {}
+  };
+  setTimeout(petSpeak, 2500);
+  setTimeout(petMove, 6000);
+  clearInterval(petTimer);
+  petTimer = setInterval(petMove, 11000);
+}
+
+// Boot is driven by the auth module below: nothing loads until there is a session.
+window.startApp = function () { reload(false); };
+</script>
+
+<!-- Auth module: same email-OTP pattern as the client inbox, against the same Supabase project. -->
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const SUPABASE_URL = 'https://mgnjlymtjmcoskqinhid.supabase.co';
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1nbmpseW10am1jb3NrcWluaGlkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyMzMxOTMsImV4cCI6MjEwMDgwOTE5M30.bFMe8wltqHkB7esG_eAYKhU20n2sjPSPp6cEmFoCrco';
+
+window.sb = createClient(SUPABASE_URL, ANON_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'implicit' }
+});
+
+const $ = id => document.getElementById(id);
+const msg = (text, kind) => { const el = $('loginMsg'); el.className = 'msg ' + (kind || 'info'); el.textContent = text; };
+
+// A magic-link click returns with tokens in the hash; adopt them, then tidy the URL.
+async function adoptHashSession() {
+  const hp = new URLSearchParams((location.hash || '').replace(/^#/, ''));
+  const at = hp.get('access_token'), rt = hp.get('refresh_token');
+  if (!at || !rt) return false;
+  try {
+    const res = await window.sb.auth.setSession({ access_token: at, refresh_token: rt });
+    if (res.error) return false;
+    history.replaceState(null, '', location.pathname);
+    return true;
+  } catch (e) { return false; }
+}
+
+$('sendCode').addEventListener('click', async function () {
+  const email = $('loginEmail').value.trim().toLowerCase();
+  if (!email || email.indexOf('@') < 0) { msg('Enter a valid email address.', 'err'); return; }
+  this.disabled = true; msg('Sending\u2026');
+  const res = await window.sb.auth.signInWithOtp({
+    email: email,
+    options: { emailRedirectTo: location.origin + location.pathname }
+  });
+  this.disabled = false;
+  if (res.error) {
+    msg(/rate/i.test(res.error.message)
+      ? 'Email limit reached \u2014 the login mailer allows only a few per hour. Try again in about an hour. Once you are in, your session lasts for weeks.'
+      : 'Could not send the email: ' + res.error.message, 'err');
+    return;
+  }
+  msg('We sent a 6-digit code to ' + email + '. Enter it below \u2014 it may take a minute, and check spam too.');
+  $('codeRow').style.display = 'block';
+  $('loginCode').focus();
+});
+
+$('verifyCode').addEventListener('click', async function () {
+  const email = $('loginEmail').value.trim().toLowerCase();
+  const code = $('loginCode').value.trim();
+  if (!email || !code) { msg('Enter your email and the code.', 'err'); return; }
+  msg('Checking\u2026');
+  const res = await window.sb.auth.verifyOtp({ email: email, token: code, type: 'email' });
+  if (res.error) { msg('That code is invalid or has expired.', 'err'); return; }
+  window.startApp();
+});
+
+$('loginEmail').addEventListener('keydown', e => { if (e.key === 'Enter') $('sendCode').click(); });
+$('loginCode').addEventListener('keydown', e => { if (e.key === 'Enter') $('verifyCode').click(); });
+
+$('signout').addEventListener('click', async function () {
+  await window.sb.auth.signOut();
+  location.reload();
+});
+
+// Decide what the visitor sees: dashboard if they have a session, login if not.
+(async function boot() {
+  await adoptHashSession();
+  const { data } = await window.sb.auth.getSession();
+  if (data && data.session) window.startApp();
+  else showLogin();
+  // A magic link resolving a moment later should not leave them staring at the login card.
+  window.sb.auth.onAuthStateChange(function (event, session) {
+    if (session && document.getElementById('login').style.display !== 'none') window.startApp();
+  });
 })();
 </script>
 </body>
