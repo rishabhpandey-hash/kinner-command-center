@@ -171,7 +171,7 @@ th small{text-transform:none;letter-spacing:0;font-weight:500}
   <div class="fresh" id="freshness"></div>
   <div class="tiles" id="tiles"></div>
   <div class="card" id="recon"></div>
-  <div class="card danger"><h2>&#128293; Overdue follow-ups &mdash; who is falling behind <span class="tag">not done by the due date</span></h2><div id="urgentbox"></div></div>
+  <div class="card danger"><h2>&#128293; Follow-ups people have left hanging <span class="tag">our rule: nothing waits more than 5 days</span></h2><div id="urgentbox"></div></div>
   <div class="grid2">
     <div class="card"><h2>&#127919; New business revenue <span class="tag">money from brand-new customers</span></h2><div id="newbars"></div></div>
     <div class="card"><h2>&#128260; Renewal revenue <span class="tag">money from existing customers</span></h2><div id="renbars"></div><div class="legend"><span><span class="dot" style="background:var(--ren)"></span>Renewal logged by the rep</span><span><span class="dot" style="background:var(--unt)"></span>Collected automatically (Chargebee autopay)</span></div></div>
@@ -449,43 +449,63 @@ function render(D) {
   }
   document.getElementById('recon').innerHTML = '<h2>Revenue reconciliation <span class="tag">Chargebee payments vs CRM deals</span></h2>' + rh;
 
-  // ---------- overdue follow-ups: who is falling behind ----------
+  // ---------- follow-ups left hanging ----------
+  // A rep sets their own due date, so a stale follow-up can be hidden by pushing the date out.
+  // The company rule is what counts: nothing should sit unactioned for more than 5 days.
   const todayMs = new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00Z').getTime();
   const daysLate = d => Math.round((todayMs - new Date(d + 'T00:00:00Z').getTime()) / 86400000);
-  const lateBy = {}, todayBy = {};
-  D.urgent.forEach(u => {
-    const t = daysLate(u.due_date) > 0 ? lateBy : todayBy;
-    t[u.owner] = (t[u.owner] || 0) + 1;
-  });
-  const overdueOnly = D.urgent.filter(u => daysLate(u.due_date) > 0);
-  const dueTodayCount = D.urgent.length - overdueOnly.length;
+  const ruleDays = Number(meta.followup_rule_days || 5);
+  const fups = (D.followups || []).slice().sort((a, b) => b.days_open - a.days_open);
+  const totalBreach = Number(meta.followups_over_5_days || fups.length);
+  const totalOpen = Number(meta.followups_open_total || 0);
 
-  let uh = overdueOnly.length
-    ? '<div class="alert warn"><span>⚠️</span><span><b>' + overdueOnly.length + ' follow-up' + s_(overdueOnly.length) +
-      (overdueOnly.length === 1 ? ' is' : ' are') + ' past the due date and still not done</b>' +
-      (dueTodayCount ? ', and ' + dueTodayCount + ' more are due today' : '') +
-      '. Each overdue one is a customer still waiting on a reply.</span></div>'
-    : '<div class="alert ok"><span>✅</span><span><b>Nothing is overdue.</b> Every follow-up is on schedule' +
-      (dueTodayCount ? ', with ' + dueTodayCount + ' due today' : '') + '.</span></div>';
+  const breachBy = {};
+  fups.forEach(f => { breachBy[f.owner] = (breachBy[f.owner] || 0) + 1; });
+  // the table carries only the oldest slice, so take the real per-person totals from the sync
+  String(meta.followups_breach_by_owner || '').split('|').filter(Boolean).forEach(function (pair) {
+    const i = pair.lastIndexOf(':');
+    if (i > 0) breachBy[pair.slice(0, i)] = Number(pair.slice(i + 1));
+  });
+  const oldestBy = {};
+  fups.forEach(f => { oldestBy[f.owner] = Math.max(oldestBy[f.owner] || 0, f.days_open); });
+
+  // a rep pushing the due date into the future is the tell-tale sign
+  const pushedOut = fups.filter(f => f.due_date && daysLate(f.due_date) < 0).length;
+
+  let uh = totalBreach
+    ? '<div class="alert warn"><span>&#9888;&#65039;</span><span><b>' + totalBreach + ' follow-ups have been sitting for more than ' +
+      ruleDays + ' days</b>' + (totalOpen ? ' out of ' + totalOpen + ' open in total' : '') +
+      '. Each one is a client who was promised something and has not heard back.' +
+      (pushedOut ? ' <b>' + pushedOut + ' of the ones below have had their due date pushed into the future</b>, so they never showed up as overdue in Zoho.' : '') +
+      '</span></div>'
+    : '<div class="alert ok"><span>&#9989;</span><span><b>Nothing is hanging.</b> Every follow-up has been actioned within ' + ruleDays + ' days.</span></div>';
 
   uh += '<div class="repchips">' + D.activity.slice()
-    .sort((a, b) => (lateBy[b.rep_name] || 0) - (lateBy[a.rep_name] || 0))
+    .sort((a, b) => (breachBy[b.rep_name] || 0) - (breachBy[a.rep_name] || 0))
     .map(a => {
-      const late = lateBy[a.rep_name] || 0, tod = todayBy[a.rep_name] || 0;
-      return '<div class="repchip ' + (late ? 'bad' : 'good') + '"><div class="n">' + late + '</div><div class="who">' + esc(a.rep_name) +
-        '</div><div class="sub">' + (late ? 'overdue' : 'nothing overdue') + (tod ? ' &middot; ' + tod + ' due today' : '') +
-        '<br>' + a.open_tasks + ' follow-ups pending in total</div></div>';
+      const n = breachBy[a.rep_name] || 0;
+      return '<div class="repchip ' + (n ? 'bad' : 'good') + '"><div class="n">' + n + '</div><div class="who">' + esc(a.rep_name) +
+        '</div><div class="sub">' + (n ? 'waiting longer than ' + ruleDays + ' days<br>oldest has waited <b>' + oldestBy[a.rep_name] + ' days</b>'
+                                       : 'nothing left hanging') + '</div></div>';
     }).join('') + '</div>';
 
-  if (D.urgent.length) {
-    const sorted = D.urgent.slice().sort((a, b) => daysLate(b.due_date) - daysLate(a.due_date));
-    uh += '<table><tr class="hdr"><th>Follow-up</th><th>Owner</th><th>Due date</th><th>How late</th></tr>' + sorted.map(u => {
-      const late = daysLate(u.due_date);
-      const badge = late > 7 ? '<span class="pill hi">' + late + ' days late</span>'
-        : late > 0 ? '<span class="pill hi">' + late + (late === 1 ? ' day late' : ' days late') + '</span>'
-        : '<span class="pill ok">due today</span>';
-      return '<tr><td data-label="Follow-up">' + esc(u.subject) + '</td><td data-label="Owner" class="b">' + esc(u.owner) + '</td><td data-label="Due date">' + esc(u.due_date) + '</td><td data-label="How late">' + badge + '</td></tr>';
-    }).join('') + '</table>';
+  if (fups.length) {
+    const zoho = id => 'https://crm.zoho.in/crm/org60035754313/tab/Leads/' + encodeURIComponent(id);
+    uh += '<table><tr class="hdr"><th>Client left waiting</th><th>What was promised</th><th>Owner</th><th class="r">Waiting</th><th>Due date they set</th></tr>' +
+      fups.map(f => {
+        const d = Number(f.days_open);
+        const band = d > 180 ? 'background:#fee2e2;color:#991b1b' : d > 30 ? 'background:#ffedd5;color:#9a3412' : 'background:#fef9c3;color:#854d0e';
+        const future = f.due_date && daysLate(f.due_date) < 0;
+        return '<tr><td data-label="Client left waiting" class="b">' +
+          (f.client_zoho_id ? '<a href="' + zoho(f.client_zoho_id) + '" target="_blank" rel="noopener">' + esc(f.client_name) + '</a>' : esc(f.client_name)) +
+          '</td><td data-label="What was promised">' + esc(f.subject) + '</td><td data-label="Owner">' + esc(f.owner) +
+          '</td><td data-label="Waiting" class="r"><span class="pill" style="' + band + '">' + d + ' days</span></td>' +
+          '<td data-label="Due date they set">' + (f.due_date ? esc(f.due_date) : 'none set') +
+          (future ? ' <span class="pill hi">pushed forward</span>' : '') + '</td></tr>';
+      }).join('') + '</table>' +
+      '<div class="note-line">Sorted by how long the client has been waiting, worst first' +
+      (totalBreach > fups.length ? '. Showing the ' + fups.length + ' oldest of ' + totalBreach : '') +
+      '. Click a client name to open their record in Zoho. <b>&ldquo;Waiting&rdquo; is counted from the day the follow-up was created</b>, not from the due date &mdash; the due date can be moved, the client&rsquo;s wait cannot.</div>';
   }
   document.getElementById('urgentbox').innerHTML = uh;
 
@@ -588,11 +608,11 @@ function render(D) {
         { v: ahead, l: 'demo' + s_(ahead) + ' still<br>to come', c: "drillDemos('" + R + "','upcoming')" },
         { v: a.calls_month, l: 'call' + s_(a.calls_month) + '<br>they made' }
       ];
-      const late = lateBy[a.rep_name] || 0;
+      const late = breachBy[a.rep_name] || 0;
       const foot = a.open_tasks
         ? '<b style="color:' + (late ? 'var(--bad)' : 'var(--ink)') + '">' + a.open_tasks + ' follow-up' + s_(a.open_tasks) +
           ' still waiting to be done</b>' +
-          (late ? ' &mdash; and ' + late + (late === 1 ? ' of those is' : ' of those are') + ' already past the due date.' : ' &mdash; none of them overdue.')
+          (late ? ' &mdash; ' + late + ' of them have been hanging longer than ' + ruleDays + ' days.' : ' &mdash; none of them overdue.')
         : 'No follow-ups outstanding.';
       return '<div class="person"><div class="person-top"><div class="person-name">' + esc(a.rep_name) + '</div>' + badge + '</div>' +
         '<div class="statrow">' + stats.map(s => '<div class="stat' + (s.c ? ' clickable' : '') + '"' +
