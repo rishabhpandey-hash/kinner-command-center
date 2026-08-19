@@ -503,7 +503,7 @@ function render(D) {
   fups.forEach(f => { oldestBy[f.owner] = Math.max(oldestBy[f.owner] || 0, f.days_open); });
 
   // a rep pushing the due date into the future is the tell-tale sign
-  const pushedOut = fups.filter(f => f.due_date && daysLate(f.due_date) < 0).length;
+  const pushedOut = fups.filter(f => f.due_date && daysLate(f.due_date) < 0 && f.days_open > 30).length;
 
   let uh = totalBreach
     ? '<div class="alert warn"><span>&#9888;&#65039;</span><span><b>' + totalBreach + ' follow-ups have been sitting for more than ' +
@@ -546,8 +546,8 @@ function render(D) {
       '<div class="band"><div class="bn" style="color:' + b.c + '">' + b.n + '</div><div class="bl">' + b.l + '</div></div>').join('') + '</div>';
 
     uh += '<button class="seeall-btn" onclick="drillFollowups()">See all ' + fups.length + ' &mdash; longest wait first &rarr;</button>' +
-      '<div class="note-line">Bands cover the ' + fups.length + ' oldest' +
-      (totalBreach > fups.length ? ' of ' + totalBreach : '') +
+      '<div class="note-line">' +
+      (totalBreach > fups.length ? 'Bands cover the ' + fups.length + ' oldest of ' + totalBreach : 'Bands cover all ' + fups.length) +
       '. <b>&ldquo;Waiting&rdquo; is counted from the day the follow-up was created</b>, not the due date &mdash; the due date can be moved, the client&rsquo;s wait cannot.</div>';
   }
   document.getElementById('urgentbox').innerHTML = uh;
