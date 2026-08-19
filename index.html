@@ -100,6 +100,12 @@ tr:last-child td{border-bottom:none}
 .pill.ok{background:#dcfce7;color:#166534}
 .totalrow td{border-top:2px solid var(--line);background:var(--bg)}
 .worst{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.teamtotal{display:flex;justify-content:space-between;align-items:baseline;gap:12px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:11px 14px;margin-bottom:14px;font-size:13px;color:var(--mut);font-weight:600}
+.teamtotal b{font-size:19px;color:var(--ink);font-weight:800}
+.renewbox{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0}
+.renewcard{background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:14px}
+.renewcard .rv{font-size:22px;font-weight:800;line-height:1.15}
+.renewcard .rl{font-size:11.5px;color:var(--mut);margin-top:4px;line-height:1.4}
 .worstrow{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);border-left:4px solid var(--bad);border-radius:10px;padding:11px 14px}
 .worstrow .wdays{flex:0 0 76px;text-align:right;font-size:20px;font-weight:800;color:var(--bad);line-height:1.1}
 .worstrow .wdays small{display:block;font-size:10px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.4px}
@@ -114,15 +120,15 @@ tr:last-child td{border-bottom:none}
 .repchip.active{border-color:var(--acc);border-width:2px;box-shadow:0 3px 10px rgba(79,70,229,.18)}
 .filterbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:14px 0 16px;padding:14px 16px;background:#fff;border:1px solid var(--line);border-radius:12px}
 .filterbar label{font-size:13.5px;font-weight:700;color:var(--ink);white-space:nowrap}
-#fupSelect{flex:1;min-width:230px;padding:11px 38px 11px 14px;font-size:14px;font-family:inherit;font-weight:600;color:var(--ink);background:#fff;border:2px solid var(--acc);border-radius:10px;cursor:pointer;min-height:46px;-webkit-appearance:none;appearance:none;
+#fupSelect,#renSelect{flex:1;min-width:230px;padding:11px 38px 11px 14px;font-size:14px;font-family:inherit;font-weight:600;color:var(--ink);background:#fff;border:2px solid var(--acc);border-radius:10px;cursor:pointer;min-height:46px;-webkit-appearance:none;appearance:none;
   background-image:url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234f46e5' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 12px center;background-size:16px}
-#fupSelect:focus{outline:none;box-shadow:0 0 0 3px rgba(79,70,229,.2)}
+#fupSelect:focus,#renSelect:focus{outline:none;box-shadow:0 0 0 3px rgba(79,70,229,.2)}
 .filterbar .clearf{background:none;border:none;color:var(--acc);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;text-decoration:underline;padding:0}
 @media(max-width:720px){
   .filterbar{padding:12px;gap:8px}
   .filterbar label{width:100%}
-  #fupSelect{width:100%;flex:none;min-width:0}
+  #fupSelect,#renSelect{width:100%;flex:none;min-width:0}
 }
 .bands{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:14px}
 .band{background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 12px;text-align:center}
@@ -214,6 +220,7 @@ th small{text-transform:none;letter-spacing:0;font-weight:500}
   <div class="card"><h2>Progress against each person&rsquo;s monthly target <span class="tag">new + renewal added together</span></h2><div id="targettbl"></div></div>
   <div class="card"><h2>What each person has done this month <span class="tag">team activity</span></h2><div id="activity"></div></div>
   <div class="card"><h2>What happened to this month&rsquo;s new leads <span class="tag">this month</span></h2><div id="funnel"></div><div style="margin-top:18px"><h2 style="margin-bottom:10px">Where those leads stand now</h2><div class="chips" id="statuschips"></div></div></div>
+  <div class="card"><h2><span>&#128197;</span>Renewals coming next month <span class="tag">from Chargebee &mdash; who has to save them</span></h2><div id="renewbox"></div></div>
   <div class="card"><h2>Open pipeline <span class="tag">money in play</span></h2><div id="pipebox"></div></div>
 </main>
 <div class="drill" id="drill" style="display:none" onclick="if(event.target===this)closeDrill()">
@@ -268,6 +275,80 @@ function closeDrill() {
   document.body.style.overflow = '';
 }
 document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrill(); });
+
+let renFilter = null;
+function setRenFilter(name) {
+  renFilter = (!name || renFilter === name) ? null : name;
+  renderRenewals();
+}
+function drillRenewals() {
+  const cb = id => 'https://knorish.chargebee.com/d/subscriptions/' + encodeURIComponent(id);
+  const rows = (LAST.renewals || []).filter(r => !renFilter || (r.owner || 'Not assigned') === renFilter)
+    .sort((a, b) => Number(b.inr_value) - Number(a.inr_value))
+    .map(r => ['<b>' + esc(r.customer_email) + '</b>',
+               '<b>' + money(r.inr_value) + '</b>',
+               esc(String(r.next_billing_on)),
+               esc(r.billing_period_unit === 'year' ? 'yearly' : (r.billing_period > 1 ? r.billing_period + '-monthly' : 'monthly')),
+               esc(r.owner || 'not assigned'),
+               '<a href="' + cb(r.sub_id) + '" target="_blank" rel="noopener">open</a>']);
+  openDrill('Renewals due next month' + (renFilter ? ' — ' + renFilter : ''),
+    rows.length + ' renewals, biggest first', ['Client', 'Expected', 'Renews on', 'Plan', 'Owner', 'Chargebee'], rows);
+}
+
+function renderRenewals() {
+  if (!LAST) return;
+  const rens = LAST.renewals || [];
+  const box = document.getElementById('renewbox');
+  if (!rens.length) { box.innerHTML = '<div class="alert ok"><span>&#8212;</span><span>No renewals are scheduled for next month.</span></div>'; return; }
+
+  const ownerOf = r => r.owner || 'Not assigned';
+  const byOwner = {};
+  rens.forEach(r => {
+    const o = ownerOf(r);
+    byOwner[o] = byOwner[o] || { n: 0, amt: 0 };
+    byOwner[o].n++; byOwner[o].amt += Number(r.inr_value);
+  });
+  const teamAmt = rens.reduce((s, r) => s + Number(r.inr_value), 0);
+  const shown = renFilter ? rens.filter(r => ownerOf(r) === renFilter) : rens;
+  const shownAmt = shown.reduce((s, r) => s + Number(r.inr_value), 0);
+  const monthName = new Date(rens[0].next_billing_on + 'T00:00:00').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+
+  let out = '<div class="alert ok" style="background:#eef2ff;border-color:#c7d2fe;color:#3730a3"><span>&#128197;</span><span><b>' +
+    rens.length + ' subscriptions come up for renewal in ' + esc(monthName) + ', worth ' + money(teamAmt) + '.</b> ' +
+    'This is money the team already has &mdash; it only stays if these customers are looked after before their date.</span></div>';
+
+  out += '<div class="filterbar"><label for="renSelect">Show renewals for:</label>' +
+    '<select id="renSelect" onchange="setRenFilter(this.value)">' +
+    '<option value=""' + (renFilter ? '' : ' selected') + '>Everyone &mdash; ' + rens.length + ' renewals, ' + money(teamAmt) + '</option>' +
+    Object.keys(byOwner).sort((a, b) => byOwner[b].amt - byOwner[a].amt).map(o =>
+      '<option value="' + esc(o) + '"' + (renFilter === o ? ' selected' : '') + '>' + esc(o) + ' &mdash; ' +
+      byOwner[o].n + ' renewals, ' + money(byOwner[o].amt) + '</option>').join('') + '</select>' +
+    (renFilter ? '<button class="clearf" onclick="setRenFilter(\'\')">Show everyone again</button>' : '') + '</div>';
+
+  const soon = shown.filter(r => { const d = new Date(r.next_billing_on + 'T00:00:00'); return d.getDate() <= 10; }).length;
+  out += '<div class="renewbox">' +
+    '<div class="renewcard"><div class="rv" style="color:var(--acc)">' + money(shownAmt) + '</div><div class="rl">expected to come in' +
+      (renFilter ? '<br>for ' + esc(renFilter) : '<br>across the team') + '</div></div>' +
+    '<div class="renewcard"><div class="rv">' + shown.length + '</div><div class="rl">subscriptions<br>up for renewal</div></div>' +
+    '<div class="renewcard"><div class="rv" style="color:var(--warn)">' + soon + '</div><div class="rl">renew in the<br>first 10 days</div></div>' +
+    '<div class="renewcard"><div class="rv">' + money(shown.length ? shownAmt / shown.length : 0) + '</div><div class="rl">average value<br>per renewal</div></div>' +
+    '</div>';
+
+  const cb = id => 'https://knorish.chargebee.com/d/subscriptions/' + encodeURIComponent(id);
+  const top = shown.slice().sort((a, b) => Number(b.inr_value) - Number(a.inr_value)).slice(0, 5);
+  out += '<h2 style="margin:16px 0 10px">Biggest renewals to protect' + (renFilter ? ' &mdash; ' + esc(renFilter) : '') + '</h2><div class="worst">' +
+    top.map(r => '<div class="worstrow" style="border-left-color:var(--acc)"><div class="wdays" style="color:var(--acc);font-size:15px">' +
+      money(r.inr_value) + '<small>expected</small></div><div class="wwho"><div class="wname">' +
+      '<a href="' + cb(r.sub_id) + '" target="_blank" rel="noopener">' + esc(r.customer_email) + '</a></div>' +
+      '<div class="wtask">renews ' + esc(String(r.next_billing_on)) + ' &middot; ' + esc(r.owner || 'not assigned') + '</div></div>' +
+      '<div class="wmeta">plan<br><b>' + esc(r.billing_period_unit === 'year' ? 'yearly' : (r.billing_period > 1 ? r.billing_period + '-monthly' : 'monthly')) + '</b></div></div>').join('') +
+    '</div>';
+
+  out += '<button class="seeall-btn" style="border-color:var(--acc);background:#eef2ff;color:#3730a3" onclick="drillRenewals()">See all ' +
+    shown.length + ' renewals' + (renFilter ? ' for ' + esc(renFilter) : '') + ' &mdash; biggest first &rarr;</button>' +
+    '<div class="note-line">Taken from Chargebee subscriptions with a renewal date next month. Amounts are the recurring charge for the period plus 18% GST on Indian customers; dollar plans are converted at the same rate used elsewhere on this page. Owner comes from the customer record in Zoho.</div>';
+  box.innerHTML = out;
+}
 
 function drillFollowups() {
   const zoho = id => 'https://crm.zoho.in/crm/org60035754313/tab/Leads/' + encodeURIComponent(id);
@@ -594,6 +675,7 @@ function render(D) {
   document.getElementById('recon').innerHTML = '<h2>Revenue reconciliation <span class="tag">Chargebee payments vs CRM deals</span></h2>' + rh;
 
   renderFollowups();
+  renderRenewals();
 
   // ---------- revenue by rep (no role tags: the card heading already says which is which) ----------
   const rev = {};
@@ -607,13 +689,19 @@ function render(D) {
   const get = n => rev[n] || { nb: 0, ex: 0, un: 0 };
 
   const nbMax = Math.max(1, ...newReps.map(n => get(n).nb));
-  document.getElementById('newbars').innerHTML = newReps.slice().sort((a, b) => get(b).nb - get(a).nb).map(n =>
+  const nbTeam = newReps.reduce((s, n) => s + get(n).nb, 0);
+  const rnTeam = renReps.reduce((s, n) => s + get(n).ex + get(n).un, 0);
+  const teamLine = (label, amt) => '<div class="teamtotal"><span>' + label + '</span><b>' + inr(amt) + '</b></div>';
+
+  document.getElementById('newbars').innerHTML = teamLine('Whole team &mdash; new business this month', nbTeam) +
+    newReps.slice().sort((a, b) => get(b).nb - get(a).nb).map(n =>
     '<div class="bar-row clickable" onclick="drillDeals(\'' + js(n) + '\',\'nb\')" title="Click to see these deals"><div class="bar-name">' + esc(n) + '</div><div class="bar-track"><div class="seg" style="width:' +
     (get(n).nb / nbMax * 100).toFixed(2) + '%;background:var(--new)"></div></div><div class="bar-amt">' + inr(get(n).nb) + '</div></div>'
   ).join('') || '<div class="alert warn"><span>⚠️</span><span>No new-business revenue yet this month.</span></div>';
 
   const rnMax = Math.max(1, ...renReps.map(n => get(n).ex + get(n).un));
-  document.getElementById('renbars').innerHTML = renReps.slice().sort((a, b) => (get(b).ex + get(b).un) - (get(a).ex + get(a).un)).map(n => {
+  document.getElementById('renbars').innerHTML = teamLine('Whole team &mdash; renewals this month', rnTeam) +
+    renReps.slice().sort((a, b) => (get(b).ex + get(b).un) - (get(a).ex + get(a).un)).map(n => {
     const r = get(n);
     return '<div class="bar-row clickable" onclick="drillDeals(\'' + js(n) + '\',\'ren\')" title="Click to see these deals"><div class="bar-name">' + esc(n) + '</div><div class="bar-track">' +
       '<div class="seg" style="width:' + (r.ex / rnMax * 100).toFixed(2) + '%;background:var(--ren)" title="Renewal logged by rep ' + inr(r.ex) + '"></div>' +
