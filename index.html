@@ -157,10 +157,13 @@ footer{max-width:1180px;margin:10px auto 0;padding:0 20px;font-size:12px;color:v
 .gate{max-width:460px;margin:80px auto;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:36px;text-align:center}
 .gate h2{margin-bottom:10px}
 .gate p{color:var(--mut);font-size:14px}
-#pet{position:fixed;z-index:150;width:58px;height:58px;cursor:pointer;transition:left 4s ease-in-out,top 4s ease-in-out;display:none}
+#pet{position:fixed;z-index:150;width:104px;height:83px;cursor:pointer;transition:left 4s ease-in-out,top 4s ease-in-out;display:none}
 #pet svg{width:100%;height:100%;filter:drop-shadow(0 5px 10px rgba(17,24,39,.2))}
 #pet.hop svg{animation:pethop .55s ease-in-out infinite}
 @keyframes pethop{0%,100%{transform:translateY(0) rotate(0)}30%{transform:translateY(-5px) rotate(-4deg)}60%{transform:translateY(0) rotate(3deg)}}
+#pet .tail{transform-origin:34px 52px;animation:petwag 1.15s ease-in-out infinite}
+@keyframes petwag{0%,100%{transform:rotate(-9deg)}50%{transform:rotate(13deg)}}
+@media(prefers-reduced-motion:reduce){#pet .tail{animation:none}}
 #petBubble{position:fixed;z-index:151;max-width:224px;background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:12px 30px 12px 14px;font-size:12.5px;line-height:1.5;color:var(--ink);box-shadow:0 10px 26px rgba(17,24,39,.16);opacity:0;transform:translateY(8px) scale(.95);transition:opacity .35s,transform .35s;display:none}
 #petBubble.show{opacity:1;transform:translateY(0) scale(1)}
 #petBubble b{color:var(--acc)}
@@ -169,7 +172,7 @@ footer{max-width:1180px;margin:10px auto 0;padding:0 20px;font-size:12px;color:v
 #petBubble:after{width:6px;height:6px;bottom:-26px;left:14px}
 #petOff{position:absolute;top:5px;right:6px;width:20px;height:20px;border:none;background:none;color:var(--mut);font-size:15px;line-height:1;cursor:pointer;font-family:inherit;border-radius:50%}
 #petOff:hover{background:var(--bg);color:var(--ink)}
-@media(max-width:720px){#pet{width:46px;height:46px}#petBubble{max-width:180px;font-size:12px}}
+@media(max-width:720px){#pet{width:78px;height:62px}#petBubble{max-width:180px;font-size:12px}}
 @media(prefers-reduced-motion:reduce){#pet{transition:none}#pet.hop svg{animation:none}}
 .loginbox{max-width:430px;margin:70px auto;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:34px 30px;box-shadow:0 8px 30px rgba(17,24,39,.08)}
 .loginbox h2{font-size:19px;margin-bottom:8px}
@@ -268,20 +271,26 @@ th small{text-transform:none;letter-spacing:0;font-weight:500}
   <div class="card"><h2><span>&#128197;</span>Renewals coming next month <span class="tag">from Chargebee &mdash; who has to save them</span></h2><div id="renewbox"></div></div>
   <div class="card"><h2>Open pipeline <span class="tag">money in play</span></h2><div id="pipebox"></div></div>
 </main>
-<div id="pet" title="Click me"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <ellipse cx="32" cy="57" rx="15" ry="3.5" fill="rgba(17,24,39,.13)"/>
-  <path d="M15 26c-1-7 0-12 2-13s6 2 8 5z" fill="#f6a04d"/><path d="M49 26c1-7 0-12-2-13s-6 2-8 5z" fill="#f6a04d"/>
-  <path d="M17.5 24.5c-.5-4 .2-7 1.2-7.6s3.4 1.2 4.8 3.3z" fill="#ffd0b0"/><path d="M46.5 24.5c.5-4-.2-7-1.2-7.6s-3.4 1.2-4.8 3.3z" fill="#ffd0b0"/>
-  <path d="M50 44c6-3 9-9 8-13-1-3-4-3-6 0" fill="none" stroke="#f6a04d" stroke-width="5" stroke-linecap="round"/>
-  <ellipse cx="32" cy="34" rx="21" ry="20" fill="#fbb96a"/>
-  <ellipse cx="32" cy="40" rx="12" ry="10" fill="#fff3e4"/>
-  <circle cx="24" cy="31" r="3.6" fill="#3b2b20"/><circle cx="40" cy="31" r="3.6" fill="#3b2b20"/>
-  <circle cx="25.2" cy="29.8" r="1.3" fill="#fff"/><circle cx="41.2" cy="29.8" r="1.3" fill="#fff"/>
-  <path d="M30 37.5h4l-2 2z" fill="#e06f6f"/>
-  <path d="M28 41c1.6 1.6 6.4 1.6 8 0" fill="none" stroke="#3b2b20" stroke-width="1.6" stroke-linecap="round"/>
-  <circle cx="17" cy="37" r="3" fill="#ffb3b3" opacity=".55"/><circle cx="47" cy="37" r="3" fill="#ffb3b3" opacity=".55"/>
-  <g stroke="#3b2b20" stroke-width="1.1" stroke-linecap="round" opacity=".65">
-    <path d="M12 34h-6M12 37.5l-5.5 2M52 34h6M52 37.5l5.5 2"/></g>
+<div id="pet" title="Click me"><svg viewBox="0 0 120 96" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <ellipse cx="64" cy="90" rx="35" ry="5" fill="rgba(17,24,39,.14)"/>
+  <g class="tail"><path d="M32 54c-9-4-13-12-10-18 2-4 7-4 9 1" fill="none" stroke="#d98b47" stroke-width="8" stroke-linecap="round"/></g>
+  <rect x="38" y="65" width="11" height="23" rx="5.5" fill="#d98b47"/>
+  <rect x="54" y="67" width="11" height="21" rx="5.5" fill="#e8a765"/>
+  <rect x="76" y="67" width="11" height="21" rx="5.5" fill="#d98b47"/>
+  <rect x="90" y="65" width="11" height="23" rx="5.5" fill="#e8a765"/>
+  <ellipse cx="43.5" cy="88" rx="6.5" ry="3.6" fill="#fff3e4"/><ellipse cx="59.5" cy="88" rx="6.5" ry="3.6" fill="#fff3e4"/>
+  <ellipse cx="81.5" cy="88" rx="6.5" ry="3.6" fill="#fff3e4"/><ellipse cx="95.5" cy="88" rx="6.5" ry="3.6" fill="#fff3e4"/>
+  <ellipse cx="64" cy="58" rx="34" ry="22" fill="#e8a765"/>
+  <ellipse cx="76" cy="66" rx="20" ry="13" fill="#fff3e4"/>
+  <circle cx="94" cy="36" r="21" fill="#e8a765"/>
+  <path d="M86 17c-7-2-13 3-13 12 0 8 5 13 10 12 3-1 3-7 2-12-1-6 1-10 1-12z" fill="#c9762f"/>
+  <ellipse cx="106" cy="44" rx="13" ry="10" fill="#fff3e4"/>
+  <ellipse cx="114" cy="41" rx="4.6" ry="3.6" fill="#3b2b20"/>
+  <path d="M108 47.5c1.7 2 4.7 2 6 .3" fill="none" stroke="#3b2b20" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="97" cy="31" r="3.4" fill="#3b2b20"/><circle cx="98.2" cy="29.8" r="1.2" fill="#fff"/>
+  <circle cx="88" cy="41.5" r="3" fill="#ffb3b3" opacity=".5"/>
+  <path d="M83 50c5.5 4.5 13 5.5 19 3" fill="none" stroke="#4f46e5" stroke-width="4.5" stroke-linecap="round"/>
+  <circle cx="88.5" cy="54" r="2.7" fill="#fbbf24"/>
 </svg></div>
 <div id="petBubble"><button id="petOff" title="Hide the cat">&times;</button><span id="petText"></span></div>
 <div class="loginbox" id="login" style="display:none">
@@ -1096,7 +1105,8 @@ function petLines() {
 function petMove() {
   const pet = document.getElementById('pet');
   const w = Math.max(320, window.innerWidth), hh = Math.max(320, window.innerHeight);
-  const size = w < 720 ? 46 : 58;
+  const size = w < 720 ? 78 : 104;
+  const ph = w < 720 ? 62 : 83;
   // Walk the outer thirds by preference so the cat sits in the margins beside the
   // content column rather than strolling over the middle of a card, and stay well
   // below the header.
@@ -1106,7 +1116,7 @@ function petMove() {
     : Math.round(w - size - 14 - Math.random() * band);
   const top = Math.round(hh * 0.5 + Math.random() * (hh * 0.38));
   pet.style.left = left + 'px';
-  pet.style.top = Math.min(top, hh - size - 14) + 'px';
+  pet.style.top = Math.min(top, hh - ph - 14) + 'px';
   pet.classList.add('hop');
   setTimeout(() => pet.classList.remove('hop'), 4000);
   petStops++;
@@ -1142,7 +1152,7 @@ function petStart() {
   const pet = document.getElementById('pet');
   pet.style.display = 'block';
   pet.style.left = '30px';
-  pet.style.top = (window.innerHeight - 120) + 'px';
+  pet.style.top = (window.innerHeight - 150) + 'px';
   pet.onclick = function () { petSpeak(true); };
   document.getElementById('petOff').onclick = function (e) {
     e.stopPropagation();
