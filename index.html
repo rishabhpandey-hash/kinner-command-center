@@ -752,7 +752,9 @@ function render(D) {
   };
   const countOf = (n, v) => demosOf(n).filter(d => verdictOf(d) === v).length;
   window.__verdict = verdictOf;
-  const demoOutcome = D.statuses.filter(s => /demo given|demo done/i.test(s.status)).reduce((s, x) => s + Number(x.cnt), 0);
+  const demoOutcome = (D.leads && D.leads.length)
+    ? D.leads.filter(l => !l.is_junk && /demo given|demo done/i.test(l.status || '')).length
+    : D.statuses.filter(s => /demo given|demo done/i.test(s.status)).reduce((s, x) => s + Number(x.cnt), 0);
 
   // renewals-only reps are left out here: they do not chase leads, book demos or make these calls
   const activeReps = D.activity.filter(a => (a.role || '').includes('New'));
