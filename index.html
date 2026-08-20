@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
 <title>Knorish Sales Command Center</title>
 <style>
-:root{--bg:#f4f5fb;--card:#ffffff;--ink:#111827;--mut:#6b7280;--line:#e5e7eb;--acc:#4f46e5;--ok:#059669;--warn:#d97706;--bad:#dc2626;--new:#4f46e5;--ren:#0ea5e9;--unt:#f59e0b}
+:root{--bg:#f4f5fb;--card:#ffffff;--ink:#111827;--mut:#6b7280;--line:#e5e7eb;--acc:#4f46e5;--ok:#059669;--warn:#d97706;--bad:#dc2626;--new:#4f46e5;--ren:#0ea5e9}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);padding-bottom:60px}
 header{background:linear-gradient(135deg,#1e1b4b,#4f46e5);color:#fff;padding:26px 32px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
@@ -259,8 +259,8 @@ th small{text-transform:none;letter-spacing:0;font-weight:500}
   <div class="card" id="recon"></div>
   <div class="card danger"><h2><span>&#128293;</span>Follow-ups people have left hanging <span class="tag">our rule: nothing waits more than 5 days</span></h2><div id="urgentbox"></div></div>
   <div class="grid2">
-    <div class="card"><h2><span>&#127919;</span>New business revenue <span class="tag">money from brand-new customers</span></h2><div id="newbars"></div></div>
-    <div class="card"><h2><span>&#128260;</span>Renewal revenue <span class="tag">money from existing customers</span></h2><div id="renbars"></div><div class="legend"><span><span class="dot" style="background:var(--ren)"></span>Renewal logged by the rep</span><span><span class="dot" style="background:var(--unt)"></span>Collected automatically (Chargebee autopay)</span></div></div>
+    <div class="card"><h2><span>&#127919;</span>New business revenue <span class="tag">first payment on a brand-new subscription</span></h2><div id="newbars"></div></div>
+    <div class="card"><h2><span>&#128260;</span>Renewal revenue <span class="tag">repeat payments from existing customers</span></h2><div id="renbars"></div></div>
   </div>
   <div class="card"><h2>Progress against each person&rsquo;s monthly target <span class="tag">new + renewal added together</span></h2><div id="targettbl"></div></div>
   <div class="card"><h2>What each person has done this month <span class="tag">team activity</span></h2><div id="activity"></div></div>
@@ -589,6 +589,23 @@ function drillDeals(rep, type) {
   openDrill(label[type] + (rep ? ' — ' + rep : ''), rows.length + ' deal' + (rows.length === 1 ? '' : 's') + ' worth ' + total,
     ['Deal', 'Amount', 'Type', 'Owner', 'Closed on'], rows);
 }
+function drillRevenue(rep, type) {
+  const label = { nb: 'New-business payments', ren: 'Renewal payments', all: 'All money collected' };
+  const pick = function (i) {
+    if (rep && (i.owner || 'Not assigned') !== rep) return false;
+    if (type === 'nb') return !!i.first_invoice;
+    if (type === 'ren') return !i.first_invoice;
+    return true;
+  };
+  const hits = (LAST.invoices || []).filter(pick).sort((a, b) => Number(b.inr_value) - Number(a.inr_value));
+  const rows = hits.map(i => ['<b>' + esc(i.customer_name || '\u2014') + '</b>', mailCell(i.customer_email),
+    money(i.inr_value), i.first_invoice ? 'New business' : 'Renewal',
+    esc(String(i.paid_at).slice(0, 10)), '#' + esc(i.invoice_id)]);
+  openDrill(label[type] + (rep ? ' \u2014 ' + rep : ''),
+    hits.length + ' payment' + (hits.length === 1 ? '' : 's') + ' worth ' +
+      money(hits.reduce((s, i) => s + Number(i.inr_value), 0)),
+    ['Client', 'Client email', 'Amount', 'Type', 'Paid on', 'Invoice'], rows);
+}
 function drillInvoices() {
   const rows = (LAST.invoices || []).slice().sort((a, b) => Number(b.inr_value) - Number(a.inr_value))
     .map(i => ['#' + esc(i.invoice_id), money(i.inr_value), esc(i.currency || ''),
@@ -833,19 +850,17 @@ function render(D) {
     ? D.reps.reduce((s, r) => s + Number(r.revenue_target || 0), 0)
     : orgTarget;
   const demoTarget = Number(meta.demo_target_week || 5);
-  const newReps = D.activity.filter(a => (a.role || '').includes('New')).map(a => a.rep_name);
-  const renReps = D.activity.filter(a => (a.role || '').includes('Renewal')).map(a => a.rep_name);
 
   const tiles = [
-    { lbl: 'Money actually collected', val: inr(cbTotal), note: D.invoices.length + ' paid invoices in Chargebee — the source of truth', c: 'drillInvoices()' },
-    { lbl: 'Recorded in the CRM', val: inr(crmTotal), note: D.deals.length + ' closed-won deals in Zoho', c: "drillDeals('','all')" },
+    { lbl: 'Money actually collected', val: inr(cbTotal), note: D.invoices.length + ' paid invoices in Chargebee — this is the revenue figure', c: 'drillRevenue(\'\',\'all\')' },
+    { lbl: 'Recorded in the CRM', val: inr(crmTotal), note: D.deals.length + ' closed-won deals in Zoho — a hygiene check, not the revenue figure', c: "drillDeals('','all')" },
     { lbl: 'Difference', val: (gap >= 0 ? '+' : '−') + inr(Math.abs(gap)),
       note: unmatchedInv.length + ' payment' + s_(unmatchedInv.length) + ' missing from CRM, ' + unmatchedDeals.length + ' deal' + s_(unmatchedDeals.length) + ' with no payment',
       color: Math.abs(gap) < 100 ? 'var(--ok)' : 'var(--warn)' },
-    { lbl: 'Progress to team target', val: Math.round(crmTotal / teamTarget * 100) + '%',
-      note: inr(crmTotal) + ' of ' + inr(teamTarget) + ' — everyone&rsquo;s targets added together' +
-            (crmTotal >= teamTarget ? ' — beaten ✓' : ''),
-      color: crmTotal >= teamTarget ? 'var(--ok)' : 'var(--ink)' }
+    { lbl: 'Progress to team target', val: Math.round(cbTotal / teamTarget * 100) + '%',
+      note: inr(cbTotal) + ' collected of ' + inr(teamTarget) + ' — everyone&rsquo;s targets added together' +
+            (cbTotal >= teamTarget ? ' — beaten ✓' : ''),
+      color: cbTotal >= teamTarget ? 'var(--ok)' : 'var(--ink)' }
   ];
   document.getElementById('tiles').innerHTML = tiles.map(t =>
     '<div class="tile' + (t.c ? ' clickable' : '') + '"' + (t.c ? ' onclick="' + t.c + '" title="Click to see the detail"' : '') +
@@ -887,54 +902,68 @@ function render(D) {
   renderFollowups();
   renderRenewals();
 
-  // ---------- revenue by rep (no role tags: the card heading already says which is which) ----------
+  // ---------- revenue by rep, DERIVED FROM CHARGEBEE ----------
+  // Money that actually arrived, split New vs Renewal by Chargebee's own first_invoice
+  // flag and credited to a rep from the cached account->rep map. Nobody has to enter
+  // anything for these figures to be right. The old version summed Zoho deal amounts, so
+  // a payment with no deal behind it vanished from the totals altogether.
   const rev = {};
-  D.deals.forEach(d => {
-    rev[d.owner] = rev[d.owner] || { nb: 0, ex: 0, un: 0 };
-    const a = Number(d.amount);
-    if (d.deal_type === 'New Business') rev[d.owner].nb += a;
-    else if (d.deal_type === 'Existing Business') rev[d.owner].ex += a;
-    else rev[d.owner].un += a;
+  D.invoices.forEach(i => {
+    const n = i.owner || 'Not assigned';
+    rev[n] = rev[n] || { nb: 0, ren: 0 };
+    if (i.first_invoice) rev[n].nb += Number(i.inr_value);
+    else rev[n].ren += Number(i.inr_value);
   });
-  const get = n => rev[n] || { nb: 0, ex: 0, un: 0 };
+  const get = n => rev[n] || { nb: 0, ren: 0 };
 
-  const nbMax = Math.max(1, ...newReps.map(n => get(n).nb));
-  const nbTeam = newReps.reduce((s, n) => s + get(n).nb, 0);
-  const rnTeam = renReps.reduce((s, n) => s + get(n).ex + get(n).un, 0);
+  // Bars list whoever actually collected money rather than a fixed role list, so a rep
+  // missing from the roster — or an unattributed payment — can never silently drop off
+  // the page and leave the bars disagreeing with the tile above them.
+  const moneyReps = k => Object.keys(rev).filter(n => get(n)[k] > 0).sort((a, b) => get(b)[k] - get(a)[k]);
+  const nbRows = moneyReps('nb'), renRows = moneyReps('ren');
+  const nbTeam = nbRows.reduce((s, n) => s + get(n).nb, 0);
+  const rnTeam = renRows.reduce((s, n) => s + get(n).ren, 0);
+  const nbMax = Math.max(1, ...nbRows.map(n => get(n).nb));
+  const rnMax = Math.max(1, ...renRows.map(n => get(n).ren));
   const teamLine = (label, amt) => '<div class="teamtotal"><span>' + label + '</span><b>' + inr(amt) + '</b></div>';
 
+  // the fallback needs the parentheses: without them the '||' saw the whole concatenation,
+  // which always includes the team line, so the empty-state message could never appear
   document.getElementById('newbars').innerHTML = teamLine('Whole team &mdash; new business this month', nbTeam) +
-    newReps.slice().sort((a, b) => get(b).nb - get(a).nb).map(n =>
-    '<div class="bar-row clickable" onclick="drillDeals(\'' + js(n) + '\',\'nb\')" title="Click to see these deals"><div class="bar-name">' + esc(n) + '</div><div class="bar-track"><div class="seg" style="width:' +
+    (nbRows.map(n =>
+    '<div class="bar-row clickable" onclick="drillRevenue(\'' + js(n) + '\',\'nb\')" title="Click to see these payments"><div class="bar-name">' + esc(n) + '</div><div class="bar-track"><div class="seg" style="width:' +
     (get(n).nb / nbMax * 100).toFixed(2) + '%;background:var(--new)"></div></div><div class="bar-amt">' + inr(get(n).nb) + '</div></div>'
-  ).join('') || '<div class="alert warn"><span>⚠️</span><span>No new-business revenue yet this month.</span></div>';
+  ).join('') || '<div class="alert warn"><span>⚠️</span><span>No new-business revenue yet this month.</span></div>');
 
-  const rnMax = Math.max(1, ...renReps.map(n => get(n).ex + get(n).un));
   document.getElementById('renbars').innerHTML = teamLine('Whole team &mdash; renewals this month', rnTeam) +
-    renReps.slice().sort((a, b) => (get(b).ex + get(b).un) - (get(a).ex + get(a).un)).map(n => {
-    const r = get(n);
-    return '<div class="bar-row clickable" onclick="drillDeals(\'' + js(n) + '\',\'ren\')" title="Click to see these deals"><div class="bar-name">' + esc(n) + '</div><div class="bar-track">' +
-      '<div class="seg" style="width:' + (r.ex / rnMax * 100).toFixed(2) + '%;background:var(--ren)" title="Renewal logged by rep ' + inr(r.ex) + '"></div>' +
-      '<div class="seg" style="width:' + (r.un / rnMax * 100).toFixed(2) + '%;background:var(--unt)" title="Collected automatically ' + inr(r.un) + '"></div>' +
-      '</div><div class="bar-amt">' + inr(r.ex + r.un) + '</div></div>';
-  }).join('');
+    (renRows.map(n =>
+    '<div class="bar-row clickable" onclick="drillRevenue(\'' + js(n) + '\',\'ren\')" title="Click to see these payments"><div class="bar-name">' + esc(n) + '</div><div class="bar-track"><div class="seg" style="width:' +
+    (get(n).ren / rnMax * 100).toFixed(2) + '%;background:var(--ren)"></div></div><div class="bar-amt">' + inr(get(n).ren) + '</div></div>'
+  ).join('') || '<div class="alert warn"><span>⚠️</span><span>No renewal revenue yet this month.</span></div>');
 
   // ---------- per-rep target progress (each rep has their own target) ----------
+  // The roster, plus anyone who collected money but is not on it. Without that second
+  // group the team total here could not equal the tile above, and a total that disagrees
+  // with its own parts is the bug that keeps coming back on this page.
+  const rosterNames = D.activity.map(a => a.rep_name);
+  const targetRows = rosterNames.concat(Object.keys(rev).filter(n => rosterNames.indexOf(n) < 0));
   document.getElementById('targettbl').innerHTML =
     '<table><tr class="hdr"><th>Sales person</th><th class="r">New business</th><th class="r">Renewals</th><th class="r">Total</th><th class="r">Their target</th><th style="width:26%">Progress</th><th class="r">%</th></tr>' +
-    D.activity.map(a => {
-      const n = a.rep_name, r = get(n), tot = r.nb + r.ex + r.un;
-      const tgt = repTarget[n] || orgTarget;
-      const pct = tot / tgt * 100;
-      return '<tr class="clickable" onclick="drillDeals(\'' + js(n) + '\',\'all\')" title="Click to see this person&#39;s deals"><td data-label="Sales person" class="b">' + esc(n) + '</td><td data-label="New business" class="r">' + inr(r.nb) + '</td><td data-label="Renewals" class="r">' + inr(r.ex + r.un) +
-        '</td><td data-label="Total" class="r b">' + inr(tot) + '</td><td data-label="Their target" class="r">' + inr(tgt) + '</td><td data-label="Progress"><div class="prog"><div style="width:' +
-        Math.min(100, pct).toFixed(1) + '%;background:' + (tot >= tgt ? 'var(--ok)' : 'var(--acc)') + '"></div></div></td>' +
-        '<td data-label="Reached" class="r b" style="color:' + (tot >= tgt ? 'var(--ok)' : 'var(--ink)') + '">' + Math.round(pct) + '%</td></tr>';
+    targetRows.map(n => {
+      const r = get(n), tot = r.nb + r.ren;
+      const onRoster = rosterNames.indexOf(n) >= 0;
+      const tgt = onRoster ? (repTarget[n] || orgTarget) : 0;
+      const pct = tgt ? tot / tgt * 100 : 0;
+      return '<tr class="clickable" onclick="drillRevenue(\'' + js(n) + '\',\'all\')" title="Click to see this person&#39;s payments"><td data-label="Sales person" class="b">' + esc(n) + '</td><td data-label="New business" class="r">' + inr(r.nb) + '</td><td data-label="Renewals" class="r">' + inr(r.ren) +
+        '</td><td data-label="Total" class="r b">' + inr(tot) + '</td><td data-label="Their target" class="r">' + (tgt ? inr(tgt) : 'no target') + '</td><td data-label="Progress">' +
+        (tgt ? '<div class="prog"><div style="width:' + Math.min(100, pct).toFixed(1) + '%;background:' + (tot >= tgt ? 'var(--ok)' : 'var(--acc)') + '"></div></div>' : '<span style="color:var(--mut)">not on the sales roster</span>') + '</td>' +
+        '<td data-label="Reached" class="r b" style="color:' + (tgt && tot >= tgt ? 'var(--ok)' : 'var(--ink)') + '">' + (tgt ? Math.round(pct) + '%' : '—') + '</td></tr>';
     }).join('') +
     (function () {
-      const t = D.activity.reduce(function (s, a) {
-        const r = get(a.rep_name);
-        s.nb += r.nb; s.ren += r.ex + r.un; s.tgt += (repTarget[a.rep_name] || orgTarget);
+      const t = targetRows.reduce(function (s, n) {
+        const r = get(n);
+        s.nb += r.nb; s.ren += r.ren;
+        s.tgt += (rosterNames.indexOf(n) >= 0 ? (repTarget[n] || orgTarget) : 0);
         return s;
       }, { nb: 0, ren: 0, tgt: 0 });
       const tot = t.nb + t.ren, pct = t.tgt ? tot / t.tgt * 100 : 0;
@@ -1065,7 +1094,7 @@ function render(D) {
     '<tr class="totalrow"><td data-label="Total open pipeline" class="b">Total open pipeline</td><td data-label="Total" class="r b" style="color:var(--acc)">' + inr(ptot) + '</td></tr></table>'
     : '<div class="alert warn"><span>⚠️</span><span>No open deals — the pipeline is empty. Deals should be created when a demo is booked, not only when payment arrives.</span></div>';
 
-  document.getElementById('foot').innerHTML = 'Sources: Zoho CRM (deals, leads, meetings, calls, tasks) + Chargebee (paid invoices, treated as the source of truth). USD converted at ' + meta.usd_inr_rate + '. Figures refresh automatically every day at 08:04 IST; “Check for updates” reloads the latest refreshed figures. “Collected automatically” is Chargebee autopay revenue that has not been typed as New or Renewal in the CRM.';
+  document.getElementById('foot').innerHTML = 'Revenue comes from Chargebee, not from the CRM: the figures are the payments that actually arrived this month, New or Renewal is Chargebee\u2019s own first-payment flag, and each payment is credited to a rep from the account owner list — so no deal has to be entered by hand for these numbers to be right. Zoho CRM still supplies leads, meetings, calls, tasks and the deal figures used only in the reconciliation check above. USD converted at ' + meta.usd_inr_rate + '. Payments and renewals refresh in the cloud three times a day (09:00, 15:00 and 21:00 IST); the CRM half refreshes separately. “Check for updates” reloads the latest refreshed figures.';
 }
 
 /* ---------- Mochi: a small mascot that wanders and nudges with real numbers ---------- */
