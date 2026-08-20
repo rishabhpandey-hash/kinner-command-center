@@ -484,6 +484,21 @@ function renderRenewals() {
     rens.length + ' subscriptions come up for renewal in ' + esc(monthName) + ', worth ' + money(teamAmt) + '.</b> ' +
     'This is money the team already has &mdash; it only stays if these customers are looked after before their date.</span></div>';
 
+  // Renewal money nobody is watching. Chargebee carries no rep, so an account with no Zoho
+  // contact and no deal history lands here. That is not a code bug to fix -- it needs a
+  // person's name put against it, so say so plainly rather than burying it in a dropdown
+  // option reading "Not assigned".
+  const orphans = rens.filter(r => !r.owner).sort((a, b) => Number(b.inr_value) - Number(a.inr_value));
+  if (orphans.length) {
+    const oAmt = orphans.reduce((s, r) => s + Number(r.inr_value), 0);
+    out += '<div class="alert warn"><span>&#9888;&#65039;</span><span><b>' + money(oAmt) +
+      ' of this renews with nobody responsible for it.</b> ' + orphans.length + ' subscription' +
+      (orphans.length === 1 ? '' : 's') + ' could not be matched to a sales person because the account has no contact record in Zoho &mdash; ' +
+      orphans.map(r => '<b>' + esc(r.customer_email || r.sub_id) + '</b> (' + money(r.inr_value) + ', renews ' +
+        new Date(r.next_billing_on + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ')').join(', ') +
+      '. Someone has to be put against these before their date, or the renewal simply is not being worked.</span></div>';
+  }
+
   out += '<div class="filterbar"><label for="renSelect">Show renewals for:</label>' +
     '<select id="renSelect" onchange="setRenFilter(this.value)">' +
     '<option value=""' + (renFilter ? '' : ' selected') + '>Everyone &mdash; ' + rens.length + ' renewals, ' + money(teamAmt) + '</option>' +
@@ -1094,7 +1109,14 @@ function render(D) {
     '<tr class="totalrow"><td data-label="Total open pipeline" class="b">Total open pipeline</td><td data-label="Total" class="r b" style="color:var(--acc)">' + inr(ptot) + '</td></tr></table>'
     : '<div class="alert warn"><span>⚠️</span><span>No open deals — the pipeline is empty. Deals should be created when a demo is booked, not only when payment arrives.</span></div>';
 
-  document.getElementById('foot').innerHTML = 'Revenue comes from Chargebee, not from the CRM: the figures are the payments that actually arrived this month, New or Renewal is Chargebee\u2019s own first-payment flag, and each payment is credited to a rep from the account owner list — so no deal has to be entered by hand for these numbers to be right. Zoho CRM still supplies leads, meetings, calls, tasks and the deal figures used only in the reconciliation check above. USD converted at ' + meta.usd_inr_rate + '. Payments and renewals refresh in the cloud three times a day (09:00, 15:00 and 21:00 IST); the CRM half refreshes separately. “Check for updates” reloads the latest refreshed figures.';
+  // The rate has twice been stored with its provenance note glued on ('99.22 (implied from
+  // CRM entry)'), which reads as broken here and is NaN the moment anyone does arithmetic on
+  // it. Show the number; the note lives in its own meta key.
+  const rateNum = parseFloat(String(meta.usd_inr_rate || '').trim());
+  const rateTxt = (Number.isFinite(rateNum) && rateNum > 1 && rateNum < 1000)
+    ? String(rateNum) + (meta.usd_inr_rate_note ? ' (' + esc(meta.usd_inr_rate_note) + ')' : '')
+    : 'a rate that is not on file &mdash; USD figures may be wrong';
+  document.getElementById('foot').innerHTML = 'Revenue comes from Chargebee, not from the CRM: the figures are the payments that actually arrived this month, New or Renewal is Chargebee\u2019s own first-payment flag, and each payment is credited to a rep from the account owner list — so no deal has to be entered by hand for these numbers to be right. Zoho CRM still supplies leads, meetings, calls, tasks and the deal figures used only in the reconciliation check above. USD converted at ' + rateTxt + '. Payments and renewals refresh in the cloud three times a day (09:00, 15:00 and 21:00 IST); the CRM half refreshes separately. “Check for updates” reloads the latest refreshed figures.';
 }
 
 /* ---------- Mochi: a small mascot that wanders and nudges with real numbers ---------- */
