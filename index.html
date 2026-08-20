@@ -843,19 +843,27 @@ function render(D) {
 
   // ---------- reconciliation (kept visible to everyone, now naming the client) ----------
   const mailto = mailCell;
+  const crmPulled = parseSync(meta.crm_pulled_at || meta.last_sync);
+  const arrivedAfterCrmCheck = i => crmPulled && new Date(i.paid_at).getTime() > crmPulled;
   let rh = '';
   if (!unmatchedInv.length && !unmatchedDeals.length) {
     rh += '<div class="alert ok"><span>✅</span><span><b>Everything matches.</b> Every payment collected in Chargebee has a matching deal in the CRM, and every CRM deal has a real payment behind it.</span></div>';
   } else {
     rh += '<div class="alert warn"><span>⚠️</span><span><b>' + unmatchedInv.length + ' payment' + s_(unmatchedInv.length) +
-      (unmatchedInv.length === 1 ? ' was' : ' were') + ' collected but never entered in the CRM</b> — real money that is not credited to any rep.' +
+      (unmatchedInv.length === 1 ? ' has' : ' have') + ' no deal covering this month</b> — real money that is not credited to any rep. ' +
+      'The client may well have deals from earlier months; what is missing is one for this payment.' +
       (unmatchedDeals.length ? ' ' + unmatchedDeals.length + ' CRM deal' + s_(unmatchedDeals.length) +
         (unmatchedDeals.length === 1 ? ' has' : ' have') + ' no matching payment, which may mean revenue is being over-reported.' : '') + '</span></div>';
     if (unmatchedInv.length) {
       rh += '<table><tr class="hdr"><th>Client</th><th>Client email</th><th>Invoice</th><th class="r">Amount</th><th>Paid on</th><th>What needs doing</th></tr>' +
-        unmatchedInv.map(i => '<tr><td data-label="Client" class="b">' + esc(i.customer_name || '—') + '</td><td data-label="Client email">' + mailto(i.customer_email) +
+        unmatchedInv.map(function (i) {
+          const tooNew = arrivedAfterCrmCheck(i);
+          return '<tr><td data-label="Client" class="b">' + esc(i.customer_name || '—') + '</td><td data-label="Client email">' + mailto(i.customer_email) +
           '</td><td data-label="Invoice">#' + esc(i.invoice_id) + '</td><td data-label="Amount" class="r b">' + inr(i.inr_value) + '</td><td data-label="Paid on">' + esc(String(i.paid_at).slice(0, 10)) +
-          '</td><td data-label="What needs doing">Create this deal in Zoho and mark it Closed Won</td></tr>').join('') + '</table>';
+          '</td><td data-label="What needs doing">' + (tooNew
+            ? '<span style="color:var(--mut)">Paid after the last CRM check &mdash; may already be entered, verify at the next refresh</span>'
+            : 'No deal covering this month. Create it in Zoho and mark it Closed Won.') + '</td></tr>';
+        }).join('') + '</table>';
     }
     if (unmatchedDeals.length) {
       rh += '<table style="margin-top:14px"><tr class="hdr"><th>CRM deal with no payment</th><th>Client email</th><th class="r">Amount</th><th>Owner</th><th>Closing date</th></tr>' +
