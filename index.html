@@ -157,11 +157,10 @@ footer{max-width:1180px;margin:10px auto 0;padding:0 20px;font-size:12px;color:v
 .gate{max-width:460px;margin:80px auto;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:36px;text-align:center}
 .gate h2{margin-bottom:10px}
 .gate p{color:var(--mut);font-size:14px}
-#pet{position:fixed;z-index:150;width:86px;height:86px;cursor:pointer;transition:left 4s ease-in-out,top 4s ease-in-out;display:none}
+#pet{position:fixed;z-index:150;width:72px;height:72px;cursor:pointer;transition:left 4s ease-in-out,top 4s ease-in-out;display:none}
 #pet svg{width:100%;height:100%;filter:drop-shadow(0 5px 10px rgba(17,24,39,.2))}
 #pet.hop svg{animation:pethop .55s ease-in-out infinite}
 @keyframes pethop{0%,100%{transform:translateY(0) rotate(0)}30%{transform:translateY(-5px) rotate(-4deg)}60%{transform:translateY(0) rotate(3deg)}}
-50%{transform:rotate(9deg)}}
 #petBubble{position:fixed;z-index:151;max-width:224px;background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:12px 30px 12px 14px;font-size:12.5px;line-height:1.5;color:var(--ink);box-shadow:0 10px 26px rgba(17,24,39,.16);opacity:0;transform:translateY(8px) scale(.95);transition:opacity .35s,transform .35s;display:none}
 #petBubble.show{opacity:1;transform:translateY(0) scale(1)}
 #petBubble b{color:var(--acc)}
@@ -170,7 +169,7 @@ footer{max-width:1180px;margin:10px auto 0;padding:0 20px;font-size:12px;color:v
 #petBubble:after{width:6px;height:6px;bottom:-26px;left:14px}
 #petOff{position:absolute;top:5px;right:6px;width:20px;height:20px;border:none;background:none;color:var(--mut);font-size:15px;line-height:1;cursor:pointer;font-family:inherit;border-radius:50%}
 #petOff:hover{background:var(--bg);color:var(--ink)}
-@media(max-width:720px){#pet{width:66px;height:66px}#petBubble{max-width:180px;font-size:12px}}
+@media(max-width:720px){#pet{width:58px;height:58px}#petBubble{max-width:180px;font-size:12px}}
 @media(prefers-reduced-motion:reduce){#pet{transition:none}#pet.hop svg{animation:none}}
 .loginbox{max-width:430px;margin:70px auto;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:34px 30px;box-shadow:0 8px 30px rgba(17,24,39,.08)}
 .loginbox h2{font-size:19px;margin-bottom:8px}
@@ -840,7 +839,7 @@ function render(D) {
   fresh.className = 'fresh' + (stale ? ' stale' : '');
   fresh.innerHTML = '<span style="font-size:17px">' + (stale ? '⚠️' : '📅') + '</span>' +
     '<span style="flex:1;min-width:240px"><b>Figures below are from ' + syncTxt +
-    (ageHrs !== null ? ' (' + ageLabel(ageHrs) + ')' : '') + '.</b> They refresh on their own every morning at 8:04 AM IST. ' +
+    (ageHrs !== null ? ' (' + ageLabel(ageHrs) + ')' : '') + '.</b> Payments and renewals refresh on their own three times a day (09:00, 15:00 and 21:00 IST); the CRM half refreshes each morning. ' +
     (stale ? 'That is more than a day ago — the overnight refresh may not have run.'
            : 'Nothing here changes until the next refresh, so the numbers will look the same if you re-check straight away.') +
     ((cbMs && crmMs && Math.abs(cbMs - crmMs) > 3600000)
@@ -1121,7 +1120,7 @@ function render(D) {
 
 /* ---------- Mochi: a small mascot that wanders and nudges with real numbers ---------- */
 const PET_OFF_KEY = 'kcc_pet_off';
-let petTimer = null, petBubbleTimer = null, petStops = 0;
+let petTimer = null, petBubbleTimer = null, petHideTimer = null, petStops = 0;
 
 function petLines() {
   const generic = [
@@ -1151,14 +1150,14 @@ function petLines() {
       }
       const given = (D.demos || []).filter(d => d.lead_modified && new Date(d.lead_modified) >= new Date(d.start_dt)).length;
       if (given) lines.push('<b>' + given + ' demos</b> actually delivered this month. That is real work.');
-      const crm = (D.deals || []).reduce((s, d) => s + Number(d.amount), 0);
+      const collected = (D.invoices || []).reduce((s, i) => s + Number(i.inr_value), 0);
       const tgt = (D.reps || []).reduce((s, r) => s + Number(r.revenue_target || 0), 0);
       if (tgt) {
-        const pct = Math.round(crm / tgt * 100);
+        const pct = Math.round(collected / tgt * 100);
         lines.push(pct >= 100 ? 'Target beaten \u2014 <b>' + pct + '%</b>. Take the win.' : '<b>' + pct + '%</b> of target. Every deal moves it.');
       }
       const unmatched = (D.invoices || []).filter(i => !i.matched_deal).length;
-      if (unmatched) lines.push('<b>' + unmatched + '</b> payment not in the CRM yet \u2014 a two-minute win.');
+      if (unmatched) lines.push('<b>' + unmatched + '</b> payment' + (unmatched === 1 ? '' : 's') + ' not in the CRM yet \u2014 a two-minute win.');
     }
   } catch (e) { /* fall back to the generic lines */ }
   return lines.length ? lines.concat(generic) : generic;
@@ -1182,13 +1181,14 @@ function petMove() {
   pet.classList.add('hop');
   setTimeout(() => pet.classList.remove('hop'), 4000);
   petStops++;
-  if (petStops % 2 === 0) setTimeout(petSpeak, 4200);
+  setTimeout(petSpeak, 4200);
 }
 
 function petSpeak(forced) {
   const pet = document.getElementById('pet');
   const bub = document.getElementById('petBubble');
   if (pet.style.display === 'none') return;
+  clearTimeout(petHideTimer);
   const lines = petLines();
   document.getElementById('petText').innerHTML = lines[Math.floor(Math.random() * lines.length)];
   const r = pet.getBoundingClientRect();
@@ -1204,7 +1204,8 @@ function petSpeak(forced) {
 function petHush() {
   const bub = document.getElementById('petBubble');
   bub.classList.remove('show');
-  setTimeout(() => { bub.style.display = 'none'; }, 400);
+  clearTimeout(petHideTimer);
+  petHideTimer = setTimeout(() => { bub.style.display = 'none'; }, 400);
 }
 
 function petStart() {
