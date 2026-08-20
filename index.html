@@ -794,10 +794,16 @@ function render(D) {
   document.getElementById('subtitle').textContent = meta.month + ' · Knorish sales';
 
   // ---------- how fresh is this data ----------
-  const syncTxt = meta.last_sync || 'unknown';
-  const syncedMs = parseSync(syncTxt);
+  const cbMs  = parseSync(meta.chargebee_pulled_at);
+  const crmMs = parseSync(meta.crm_pulled_at);
+  // freshness is only as good as the STALER half
+  const syncedMs = (cbMs && crmMs) ? Math.min(cbMs, crmMs) : (crmMs || cbMs || parseSync(meta.last_sync));
+  const syncTxt = (cbMs && crmMs)
+    ? (crmMs <= cbMs ? meta.crm_pulled_at : meta.chargebee_pulled_at)
+    : (meta.crm_pulled_at || meta.chargebee_pulled_at || meta.last_sync || 'unknown');
   const ageHrs = syncedMs ? (Date.now() - syncedMs) / 3600000 : null;
   const stale = ageHrs !== null && ageHrs > 26;
+  const syncErr = (meta.last_sync_error || '').trim();
   const fresh = document.getElementById('freshness');
   fresh.className = 'fresh' + (stale ? ' stale' : '');
   fresh.innerHTML = '<span style="font-size:17px">' + (stale ? '⚠️' : '📅') + '</span>' +
@@ -805,8 +811,13 @@ function render(D) {
     (ageHrs !== null ? ' (' + ageLabel(ageHrs) + ')' : '') + '.</b> They refresh on their own every morning at 8:04 AM IST. ' +
     (stale ? 'That is more than a day ago — the overnight refresh may not have run.'
            : 'Nothing here changes until the next refresh, so the numbers will look the same if you re-check straight away.') +
+    ((cbMs && crmMs && Math.abs(cbMs - crmMs) > 3600000)
+      ? '<br><span style="font-size:12px">Payments and renewals refresh in the cloud every few hours (last ' + esc(meta.chargebee_pulled_at || '') +
+        '). CRM figures — deals, leads, demos, follow-ups — last came in at ' + esc(meta.crm_pulled_at || '') + '.</span>'
+      : '') +
     '</span><span style="font-size:12px;opacity:.85;white-space:nowrap">you checked at ' +
-    new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) + '</span>';
+    new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) + '</span>' +
+    (syncErr ? '<span style="width:100%;color:var(--bad);font-size:12px;font-weight:600">⚠️ Last automatic refresh failed: ' + esc(syncErr) + '</span>' : '');
 
   // ---------- money ----------
   const cbTotal = D.invoices.reduce((s, i) => s + Number(i.inr_value), 0);
