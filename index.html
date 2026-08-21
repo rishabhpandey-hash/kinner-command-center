@@ -264,6 +264,7 @@ th small{text-transform:none;letter-spacing:0;font-weight:500}
   <div class="card"><h2>Progress against each person&rsquo;s monthly target <span class="tag">new + renewal added together</span></h2><div id="targettbl"></div></div>
   <div class="card"><h2>What each person has done this month <span class="tag">team activity</span></h2><div id="activity"></div></div>
   <div class="card"><h2>What happened to this month&rsquo;s new leads <span class="tag">this month</span></h2><div id="funnel"></div><div style="margin-top:18px"><h2 style="margin-bottom:10px">Where those leads stand now</h2><div class="chips" id="statuschips"></div></div></div>
+  <div class="card"><h2><span>&#128225;</span>Where the leads come from <span class="tag">Lead Source in Zoho</span></h2><div id="sourcebox"></div></div>
   <div class="card" id="accesscard" style="display:none"><h2><span>&#128274;</span>Who can see this dashboard <span class="tag">admins only</span></h2><div id="accessbox"></div></div>
   <div class="card"><h2><span>&#128197;</span>Renewals coming next month <span class="tag">from Chargebee &mdash; who has to save them</span></h2><div id="renewbox"></div></div>
   <div class="card"><h2>Open pipeline <span class="tag">money in play</span></h2><div id="pipebox"></div></div>
@@ -569,6 +570,39 @@ function drillLeadSet(kind) {
     .map(l => ['<b>' + esc(l.name || '—') + '</b>', mailCell(l.email), esc(l.status || 'No Status'), esc(l.owner || '—'), esc(l.created_on || '—')]);
   openDrill(s.t, rows.length + ' of ' + all.length + ' leads this month', ['Client', 'Email', 'Stage', 'Owner', 'Added on'], rows);
 }
+// Sources are grouped on a normalised key so the CRM's duplicate spellings collapse
+// together -- "High Value Referral" and "High-Value Referral" are one channel, not two.
+// The raw value stays in the table so it can still be cross-checked in Zoho.
+function srcKey(s) {
+  return String(s == null ? '' : s).trim().toLowerCase().replace(/[\s\-_]+/g, ' ').trim();
+}
+// Zoho appends the receiving number to the WhatsApp source, which is noise in a heading.
+function srcPretty(raw) {
+  return String(raw || '')
+    .replace(/\s*[-\u2013]\s*Knorish\s*[-\u2013]?\s*\+?\d+\s*$/i, '')
+    .replace(/\s*\+\d{6,}\s*$/, '').trim();
+}
+// Label a group by its most common raw spelling, so the page follows the CRM's own wording.
+function srcLabel(key) {
+  if (!key) return 'no source recorded';
+  const seen = {};
+  ((LAST && LAST.leads) || []).forEach(function (l) {
+    if (srcKey(l.source) === key && l.source) seen[l.source] = (seen[l.source] || 0) + 1;
+  });
+  const best = Object.keys(seen).sort((a, b) => seen[b] - seen[a])[0];
+  return srcPretty(best) || key;
+}
+function drillSource(encoded) {
+  // paired with encodeURIComponent() at the call site: keeps CRM text out of the attribute
+  let key; try { key = decodeURIComponent(encoded); } catch (e) { key = String(encoded); }
+  const all = (LAST.leads || []).filter(l => !l.is_junk);
+  const rows = all.filter(l => srcKey(l.source) === key)
+    .sort((a, b) => String(a.created_on || '').localeCompare(String(b.created_on || '')))
+    .map(l => ['<b>' + esc(l.name || '\u2014') + '</b>', mailCell(l.email), esc(l.status || 'No Status'),
+               esc(l.owner || '\u2014'), esc(l.created_on || '\u2014')]);
+  openDrill('Leads from ' + srcLabel(key), rows.length + ' of ' + all.length + ' real leads this month',
+    ['Client', 'Email', 'Stage', 'Owner', 'Added on'], rows);
+}
 function drillRepLeads(rep) {
   const rows = (LAST.leads || []).filter(l => !l.is_junk && l.owner === rep)
     .sort((a, b) => String(b.created_on || '').localeCompare(String(a.created_on || '')))
@@ -714,6 +748,90 @@ let fupFilter = null;
 function setFupFilter(name) {
   fupFilter = (!name || fupFilter === name) ? null : name;
   renderFollowups();
+}
+
+function renderSources() {
+  if (!LAST) return;
+  const box = document.getElementById('sourcebox');
+  const all = LAST.leads || [];
+  const real = all.filter(l => !l.is_junk);
+  if (!real.length) {
+    box.innerHTML = '<div class="alert warn"><span>&#9888;&#65039;</span><span>No leads recorded this month yet.</span></div>';
+    return;
+  }
+  // Every source with no Lead_Source at all groups under the empty key, which is worth
+  // seeing rather than hiding: an unattributed lead is a channel nobody can get credit for.
+  const g = {};
+  all.forEach(function (l) {
+    const k = srcKey(l.source);
+    g[k] = g[k] || { k: k, leads: 0, junk: 0, demo: 0, won: 0, spellings: {} };
+    if (l.source) g[k].spellings[l.source] = 1;
+    if (l.is_junk) { g[k].junk++; return; }
+    g[k].leads++;
+    // same two tests the funnel above uses, so the two sections can never disagree
+    if (/^demo/i.test(l.status || '')) g[k].demo++;
+    if (/won/i.test(l.status || '')) g[k].won++;
+  });
+  const rows = Object.keys(g).map(k => g[k]).sort((a, b) => b.leads - a.leads || b.junk - a.junk);
+  const maxLeads = Math.max(1, ...rows.map(r => r.leads));
+  const totalReal = real.length, totalJunk = all.length - real.length;
+
+  // Judge quality only where there is enough volume to mean anything; a single lead that
+  // converted is not a channel worth reallocating budget to.
+  const MIN_N = 5;
+  const judged = rows.filter(r => r.k && r.leads >= MIN_N);
+  const best = judged.slice().sort((a, b) => (b.demo / b.leads) - (a.demo / a.leads))[0];
+  const biggest = rows.filter(r => r.k)[0];
+  const dead = judged.filter(r => r.demo === 0);
+
+  let out = '';
+  if (best && biggest) {
+    out += '<div class="alert ok" style="background:#eef2ff;border-color:#c7d2fe;color:#3730a3"><span>&#128161;</span><span>' +
+      '<b>' + esc(srcLabel(biggest.k)) + '</b> brings the most leads (' + biggest.leads + ' of ' + totalReal + '), but <b>' +
+      esc(srcLabel(best.k)) + '</b> converts best &mdash; ' + Math.round(best.demo / best.leads * 100) + '% of its ' +
+      best.leads + ' leads reached a demo, against ' + Math.round(rows.reduce((s, r) => s + r.demo, 0) / totalReal * 100) +
+      '% across everything.' + (dead.length ? ' ' + dead.length + ' channel' + (dead.length === 1 ? '' : 's') +
+      ' with ' + MIN_N + '+ leads produced no demo at all.' : '') + '</span></div>';
+  }
+
+  out += '<table><tr class="hdr"><th>Where it came from</th><th style="width:22%">Share of leads</th><th class="r">Real leads</th>' +
+    '<th class="r">Reached a demo</th><th class="r">Became a customer</th><th class="r">Test / spam left out</th></tr>' +
+    rows.map(function (r) {
+      const pct = r.leads ? Math.round(r.demo / r.leads * 100) : 0;
+      const noSource = !r.k;
+      const label = noSource
+        ? '<span style="color:var(--warn)">&#9888;&#65039; No source recorded</span>'
+        : esc(srcLabel(r.k)) + (Object.keys(r.spellings).length > 1
+            ? ' <span class="tag" title="' + esc(Object.keys(r.spellings).join(' / ')) +
+              '">' + Object.keys(r.spellings).length + ' spellings</span>' : '');
+      return '<tr class="clickable" onclick="drillSource(\'' + encodeURIComponent(r.k) + '\')" title="Click to see these leads">' +
+        '<td data-label="Where it came from" class="b">' + label + '</td>' +
+        '<td data-label="Share of leads"><div class="prog"><div style="width:' + (r.leads / maxLeads * 100).toFixed(1) +
+          '%;background:' + (r.demo ? 'var(--acc)' : 'var(--mut)') + '"></div></div></td>' +
+        '<td data-label="Real leads" class="r b">' + r.leads + '</td>' +
+        '<td data-label="Reached a demo" class="r">' + (r.leads ? r.demo + ' <span style="color:var(--mut)">(' + pct + '%)</span>' : '\u2014') + '</td>' +
+        '<td data-label="Became a customer" class="r">' + (r.won || '\u2014') + '</td>' +
+        '<td data-label="Test / spam left out" class="r" style="color:' + (r.junk ? 'var(--warn)' : 'var(--mut)') + '">' +
+          (r.junk || '\u2014') + '</td></tr>';
+    }).join('') +
+    '<tr class="totalrow"><td data-label="Whole month" class="b">Every channel</td><td></td>' +
+    '<td data-label="Real leads" class="r b">' + totalReal + '</td>' +
+    '<td data-label="Reached a demo" class="r b">' + rows.reduce((s, r) => s + r.demo, 0) + '</td>' +
+    '<td data-label="Became a customer" class="r b">' + rows.reduce((s, r) => s + r.won, 0) + '</td>' +
+    '<td data-label="Test / spam left out" class="r b">' + totalJunk + '</td></tr></table>';
+
+  const noSrc = g[''] || null;
+  const wonNoSrc = noSrc ? noSrc.won : 0;
+  const bookings = rows.filter(r => /booking/i.test(srcLabel(r.k)))[0];
+  out += '<div class="note-line">' +
+    'Taken from the Lead Source field on each Zoho lead. Test and spam signups are excluded from every figure here, the same as everywhere else on this page, and counted in the last column so the exclusion stays checkable. ' +
+    '&ldquo;Reached a demo&rdquo; and &ldquo;Became a customer&rdquo; are the stage each lead sits at <i>now</i>, not a running total &mdash; a lead that bought no longer shows a demo stage, which is why the two columns do not add up.' +
+    (bookings ? ' <b>One caveat on ' + esc(srcLabel(bookings.k)) + ':</b> that is the booking tool, not a channel. Those people had already decided to book a demo, so it scores well by definition and hides wherever they actually came from.' : '') +
+    (noSrc && noSrc.leads ? ' <b>' + noSrc.leads + ' lead' + (noSrc.leads === 1 ? '' : 's') + ' carry no source at all' +
+      (wonNoSrc ? ', including ' + wonNoSrc + ' that became a paying customer' : '') +
+      '</b> &mdash; making Lead Source required on the form would close that gap.' : '') +
+    '</div>';
+  box.innerHTML = out;
 }
 
 function renderFollowups() {
@@ -915,6 +1033,7 @@ function render(D) {
 
   renderFollowups();
   renderRenewals();
+  renderSources();
 
   // ---------- revenue by rep, DERIVED FROM CHARGEBEE ----------
   // Money that actually arrived, split New vs Renewal by Chargebee's own first_invoice
